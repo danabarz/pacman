@@ -526,20 +526,31 @@ def readCommand( argv ):
   noKeyboard = options.gameToReplay == None and (options.textGraphics or options.quietGraphics)
   pacmanType = loadAgent(options.pacman, noKeyboard)
   agentOpts = parseAgentArgs(options.agentArgs)
-  if options.numTraining > 0:
-    args['numTraining'] = options.numTraining
-    if 'numTraining' not in agentOpts: agentOpts['numTraining'] = options.numTraining
+  # if options.numTraining > 0:
+  #   args['numTraining'] = options.numTraining
+  #   if 'numTraining' not in agentOpts: agentOpts['numTraining'] = options.numTraining
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
   args['pacman'] = pacman
 
-  # Don't display training games
-  if 'numTrain' in agentOpts:
-    options.numQuiet = int(agentOpts['numTrain'])
-    options.numIgnore = int(agentOpts['numTrain'])
+  # # Don't display training games
+  # if 'numTrain' in agentOpts:
+  #   options.numQuiet = int(agentOpts['numTrain'])
+  #   options.numIgnore = int(agentOpts['numTrain'])
 
-  # Choose a ghost agent
+  # Choose a ghost agent  #TODO : apply ghost logic here (paramters to add: ghostSpeed, ghostNumber, ghostType, 
+  #                               numTraining, layout, pacmanType, numGames, agentArgs, graphicsType)
   ghostType = loadAgent(options.ghost, noKeyboard)
-  args['ghosts'] = [ghostType( i+1 ) for i in range( options.numGhosts )]
+  ghostOpts = parseAgentArgs(options.agentArgs)
+  if options.numTraining > 0:
+      args['numTraining'] = options.numTraining
+      if 'numTraining' not in ghostOpts: ghostOpts['numTraining'] = options.numTraining
+  
+  args['ghosts'] = [ghostType(i + 1, **ghostOpts) for i in range(options.numGhosts)]
+
+  # Don't display training games
+  if 'numTrain' in ghostOpts:
+    options.numQuiet = int(ghostOpts['numTrain'])
+    options.numIgnore = int(ghostOpts['numTrain'])
 
   # Choose a display format
   if options.quietGraphics:
