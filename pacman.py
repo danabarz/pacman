@@ -537,8 +537,7 @@ def readCommand( argv ):
   #   options.numQuiet = int(agentOpts['numTrain'])
   #   options.numIgnore = int(agentOpts['numTrain'])
 
-  # Choose a ghost agent  #TODO : apply ghost logic here (paramters to add: ghostSpeed, ghostNumber, ghostType, 
-  #                               numTraining, layout, pacmanType, numGames, agentArgs, graphicsType)
+  # Choose a ghost agent  #TODO : apply ghost logic here (paramters to add: ghostSpeed)
   ghostType = loadAgent(options.ghost, noKeyboard)
   ghostOpts = parseAgentArgs(options.agentArgs)
   if options.numTraining > 0:
