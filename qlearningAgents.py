@@ -10,7 +10,6 @@ from game import *
 from ghostAgents import GhostAgent
 from learningAgents import ReinforcementAgent
 from featureExtractors import *
-
 import random, util, math
 
 
@@ -53,7 +52,6 @@ class QLearningAgent(ReinforcementAgent):
     def setQValue(self, state, action, value):
         self.qvalues[(state, action)] = value
 
-
     def computeValueFromQValues(self, state):
         """
           Returns max_action Q(state,action)
@@ -70,8 +68,6 @@ class QLearningAgent(ReinforcementAgent):
           Compute the best action to take in a state.  Note that if there
           are no legal actions, which is the case at the terminal state,
           you should return None.
-          
-          Si multiples acciones tienen el mismo valor, devuelvo una random.
         """    
         best_value = self.getValue(state)
         best_actions = [action for action in self.getLegalActions(state) \
@@ -95,7 +91,6 @@ class QLearningAgent(ReinforcementAgent):
         legal_actions = self.getLegalActions(state)
         action = None
         
-        
         if util.flipCoin(self.epsilon):
             action = random.choice(legal_actions)
         else:
@@ -118,22 +113,6 @@ class QLearningAgent(ReinforcementAgent):
           The update se realiza al llegar al estado s' y es realizado por la ecuacion:
             
             - Q(s, a) = (1-alpha) * Q(s, a) + alpha * (R(s,a,s') + disc * max{a'}[Q(s',a')])
-          
-          Donde:
-          
-            - alpha es el coeficiente de aprendizaje. Notar que si es 1, se queda con la estrategia conocida.
-            - Q(s, a) nos devuelve los qvalores actuales
-            - R(s,a,s') es el reward del estado actual
-            - disc es el coeficiente de descuento por la accion futura
-            
-          Notar que la ecuacion puede reescribirse de la forma:
-            
-            - Q(s, a) = Q(s, a) + alpha * (R(s,a,s') + disc * max{a'}[Q(s',a')] - Q(s, a))
-            
-            En donde puede interpretarse el termino al que alpha multiplica como la diferencia entre lo
-            ocurrido y lo que estabamos esperando, es decir el error. Luego, el valor se movera con un
-            coeficiente de "alpha" para el lado del error.
-            
         """
         disc = self.discount
         alpha = self.alpha
@@ -205,8 +184,8 @@ class ApproximateQAgent(PacmanQAgent):
 
     def getQValue(self, state, action):
         """
-          Should return Q(state,action) = w * featureVector
-          where * is the dotProduct operator
+        Should return Q(state,action) = w * featureVector
+        where * is the dotProduct operator
         """
         features = self.featExtractor.getFeatures(state, action)
         result = 0
@@ -216,7 +195,7 @@ class ApproximateQAgent(PacmanQAgent):
 
     def update(self, state, action, nextState, reward):
         """
-           Should update your weights based on transition
+        Should update your weights based on transition
         """
         features = self.featExtractor.getFeatures(state, action)
         correction = reward + self.discount*self.getValue(nextState) - self.getQValue(state, action)
@@ -237,7 +216,7 @@ class ApproximateQAgent(PacmanQAgent):
 class GhostQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
 
-    def __init__(self, index, epsilon=1.0, gamma=0.9, alpha=0.1, numTraining=0, **args):
+    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         For example, to change the exploration rate, try:
@@ -265,17 +244,3 @@ class GhostQAgent(QLearningAgent):
         action = QLearningAgent.getAction(self, state)
         self.doAction(state, action)
         return action
-
-    def update(self, state, action, nextState, reward):
-        # QLearningAgent.update(self, state, action, nextState, reward)
-        if nextState.isWin():
-            reward = 10  # Ghost wins by catching Pacman
-        elif nextState.isLose():
-            reward = -10  # Ghost loses by being eaten
-        else:
-            reward = -1  # Small penalty for each move
-
-        old_q_value = self.getQValue(state, action)
-        next_value = self.getValue(nextState)
-        new_q_value = old_q_value + self.alpha * (reward + self.gamma * next_value - old_q_value)
-        self.qValues[(state, action)] = new_q_value
