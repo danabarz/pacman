@@ -10,6 +10,7 @@ from game import Agent
 from game import Actions
 from game import Directions
 import random
+from pacman import GhostRules
 from util import manhattanDistance
 import util
 import search
@@ -51,8 +52,8 @@ class DirectionalGhost( GhostAgent ):
         pos = state.getGhostPosition( self.index )
         isScared = ghostState.scaredTimer > 0
 
-        speed = 1
-        if isScared: speed = 0.5
+        speed = GhostRules.GHOST_SPEED
+        if isScared: speed /= 2.0
 
         actionVectors = [Actions.directionToVector( a, speed ) for a in legalActions]
         newPositions = [( pos[0]+a[0], pos[1]+a[1] ) for a in actionVectors]
