@@ -8,6 +8,7 @@
 
 import pickle
 import random
+
 import util
 from learningAgents import ReinforcementAgent
 
@@ -237,6 +238,7 @@ class ApproximateQAgent(PacmanQAgent):
 
 class GhostQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
+    EP_COUNTER = 0
 
     def __init__(self, index, epsilon=0.25, gamma=0.8, alpha=0.25, numTraining=0, q_table_file=None, **args):
         """
@@ -256,18 +258,6 @@ class GhostQAgent(QLearningAgent):
         if q_table_file:
             self.load_q_table(q_table_file)
 
-    def load_q_table(self, file_name):
-        try:
-            with open(file_name, 'rb') as f:
-                self.q_table = pickle.load(f)
-            print(f"Q-table loaded from {file_name}")
-        except FileNotFoundError:
-            print(f"No Q-table found at {file_name}. Starting with an empty Q-table.")
-
-    def save_q_table(self, file_name):
-        with open(file_name, 'wb') as f:
-            pickle.dump(self.q_table, f)
-        print(f"Q-table saved to {file_name}")
 
     def getAction(self, state):
         """
@@ -285,9 +275,9 @@ class GhostQAgent(QLearningAgent):
         """
         # Record the score for the current episode
         self.episodeScores.append(state.getScore())
-        ep_count = 0
+
         # Every 100 episodes, calculate the average score and save the Q-table
-        if self.episodesSoFar % 100 == 0 and ep_count % 2 == 0:
+        if self.episodesSoFar % 100 == 0:
             average_score = sum(self.episodeScores) / len(self.episodeScores)
             print(f"Episode {self.episodesSoFar} finished.")
             print(f"  - Average score over the last 100 episodes: {average_score}")
@@ -299,7 +289,6 @@ class GhostQAgent(QLearningAgent):
 
             # Reset the scores for the next batch of 100 episodes
             self.episodeScores = []
-        ep_count += 1
 
         # Call the parent class's final method
         QLearningAgent.final(self, state)
