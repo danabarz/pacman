@@ -6,58 +6,85 @@
 # John DeNero (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # For more info, see http://inst.eecs.berkeley.edu/~cs188/sp09/pacman.html
 
-from game import *
-from ghostAgents import GhostAgent
+import pickle
+import random
+import util
 from learningAgents import ReinforcementAgent
-from featureExtractors import *
-import random, util, math
 
 
 class QLearningAgent(ReinforcementAgent):
     """
-      Q-Learning Agent
+    Q-Learning Agent
 
-      Functions you should fill in:
-        - computeValueFromQValues
-        - computeActionFromQValues
-        - getQValue
-        - getAction
-        - update
+    Functions you should fill in:
+    - computeValueFromQValues
+    - computeActionFromQValues
+    - getQValue
+    - getAction
+    - update
 
-      Instance variables you have access to
-        - self.epsilon (exploration prob)
-        - self.alpha (learning rate)
-        - self.discount (discount rate)
+    Instance variables you have access to
+    - self.epsilon (exploration prob)
+    - self.alpha (learning rate)
+    - self.discount (discount rate)
 
-      Functions you should use
-        - self.getLegalActions(state)
-          which returns legal actions for a state
+    Functions you should use
+    - self.getLegalActions(state)
+        which returns legal actions for a state
     """
-    def __init__(self, **args):
+
+    def __init__(self, q_table_name=None, **args):
         "You can initialize Q-values here..."
         ReinforcementAgent.__init__(self, **args)
         self.qvalues = {}
+        self.q_table_name = q_table_name
+        if q_table_name:
+            self.load_q_table(q_table_name)
+
+    def save_q_table(self, file_name):
+        """Saves the Q-table to a file with backup and error handling."""
+        try:
+            # Save to a temporary file first
+            temp_file_name = file_name + ".tmp"
+            with open(temp_file_name, 'wb') as f:
+                pickle.dump(self.qvalues, f)
+            # Replace the old file with the new one
+            import os
+            os.replace(temp_file_name, file_name)
+            print(f"Q-table successfully saved to {file_name}")
+        except IOError as e:
+            print(f"Error saving Q-table to {file_name}: {e}")
+
+    def load_q_table(self, file_name):
+        """Loads the Q-table from a file with enhanced error handling."""
+        try:
+            with open(file_name, 'rb') as f:
+                self.qvalues = pickle.load(f)
+            print(f"Q-table loaded from {file_name}")
+        except FileNotFoundError:
+            print(f"No Q-table found at {file_name}. Starting with an empty Q-table.")
+            self.qvalues = {}
+        except (pickle.UnpicklingError, IOError) as e:
+            print(f"Error loading Q-table from {file_name}. Starting with an empty Q-table. Error: {e}")
+            self.qvalues = {}
 
     def getQValue(self, state, action):
         """
-          Returns Q(state,action)
-          Should return 0.0 if we have never seen a state
-          or the Q node value otherwise
+        Returns Q(state,action)
+        Should return 0.0 if we have never seen a state
+        or the Q node value otherwise
         """
-        if (state,action) in self.qvalues:
-            return self.qvalues[(state,action)]
-        else:
-            return 0.0
-    
+        return self.qvalues.get((state, action), 0.0)
+
     def setQValue(self, state, action, value):
         self.qvalues[(state, action)] = value
 
     def computeValueFromQValues(self, state):
         """
-          Returns max_action Q(state,action)
-          where the max is over legal actions.  Note that if
-          there are no legal actions, which is the case at the
-          terminal state, you should return a value of 0.0.
+        Returns max_action Q(state,action)
+        where the max is over legal actions.  Note that if
+        there are no legal actions, which is the case at the
+        terminal state, you should return a value of 0.0.
         """
         qvalues = [self.getQValue(state, action) for action in self.getLegalActions(state)]
         if not len(qvalues): return 0.0
@@ -65,32 +92,33 @@ class QLearningAgent(ReinforcementAgent):
 
     def computeActionFromQValues(self, state):
         """
-          Compute the best action to take in a state.  Note that if there
-          are no legal actions, which is the case at the terminal state,
-          you should return None.
-        """    
+        Compute the best action to take in a state. If there are no legal actions,
+        return None.
+        """
         best_value = self.getValue(state)
-        best_actions = [action for action in self.getLegalActions(state) \
-                        if self.getQValue(state, action) == best_value]
-    
-        if not len(best_actions): return None
-        else: return random.choice(best_actions)
+        legal_actions = self.getLegalActions(state)
+        
+        if not legal_actions:
+            return None
+        
+        best_actions = [action for action in legal_actions if self.getQValue(state, action) == best_value]
+        return random.choice(best_actions) if best_actions else None
 
     def getAction(self, state):
         """
-          Compute the action to take in the current state.  With
-          probability self.epsilon, we should take a random action and
-          take the best policy action otherwise.  Note that if there are
-          no legal actions, which is the case at the terminal state, you
-          should choose None as the action.
+        Compute the action to take in the current state.  With
+        probability self.epsilon, we should take a random action and
+        take the best policy action otherwise.  Note that if there are
+        no legal actions, which is the case at the terminal state, you
+        should choose None as the action.
 
-          HINT: You might want to use util.flipCoin(prob)
-          HINT: To pick randomly from a list, use random.choice(list)
+        HINT: You might want to use util.flipCoin(prob)
+        HINT: To pick randomly from a list, use random.choice(list)
         """
         # Pick Action
         legal_actions = self.getLegalActions(state)
         action = None
-        
+
         if util.flipCoin(self.epsilon):
             action = random.choice(legal_actions)
         else:
@@ -100,32 +128,19 @@ class QLearningAgent(ReinforcementAgent):
 
     def update(self, state, action, nextState, reward):
         """
-          The parent class calls this to observe a
-          state = action => nextState and reward transition.
-          You should do your Q-Value update here
-
-          NOTE: You should never call this function,
-          it will be called on your behalf
-          
-          next_value = max[a'] Q(s', a')
-          donde s' es el siguiente estado
-          
-          The update se realiza al llegar al estado s' y es realizado por la ecuacion:
-            
-            - Q(s, a) = (1-alpha) * Q(s, a) + alpha * (R(s,a,s') + disc * max{a'}[Q(s',a')])
+        Update the Q-value for the state-action pair using the Bellman equation:
+        Q(s, a) = (1 - alpha) * Q(s, a) + alpha * (reward + discount * max_{a'} Q(s', a'))
+        where s' is the next state, a' is the next action, and alpha is the learning rate.
         """
         disc = self.discount
         alpha = self.alpha
         qvalue = self.getQValue(state, action)
         next_value = self.getValue(nextState)
-        
-        #new_value = qvalue + alpha * (reward + disc * next_value - qvalue)
-        new_value = (1-alpha) * qvalue + alpha * (reward + disc * next_value)
-        
-        self.setQValue(state, action, new_value) 
+        new_value = (1 - alpha) * qvalue + alpha * (reward + disc * next_value)
+        self.setQValue(state, action, new_value)
 
     def getPolicy(self, state):
-        return self.computeActionFromQValues(state) # Get best action from state
+        return self.computeActionFromQValues(state)  # Get best action from state
 
     def getValue(self, state):
         return self.computeValueFromQValues(state)  # Get best q-value from state
@@ -134,7 +149,7 @@ class QLearningAgent(ReinforcementAgent):
 class PacmanQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
 
-    def __init__(self, epsilon=0.05,gamma=0.7,alpha=0.1, numTraining=0, **args):
+    def __init__(self, epsilon=0.1, gamma=0.9, alpha=0.1, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         For example, to change the exploration rate, try:
@@ -158,26 +173,27 @@ class PacmanQAgent(QLearningAgent):
         informs parent of action for Pacman.  Do not change or remove this
         method.
         """
-        action = QLearningAgent.getAction(self,state)
-        self.doAction(state,action)
+        action = QLearningAgent.getAction(self, state)
+        self.doAction(state, action)
         return action
 
 
 class ApproximateQAgent(PacmanQAgent):
     """
-       ApproximateQLearningAgent
+    ApproximateQLearningAgent
 
-       You should only have to overwrite getQValue
-       and update.  All other QLearningAgent functions
-       should work as is.
+    You should only have to overwrite getQValue
+    and update.  All other QLearningAgent functions
+    should work as is.
     """
+
     def __init__(self, extractor='IdentityExtractor', **args):
         self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
         self.setWeights()
 
     def setWeights(self, weights={}):
-        self.weights = util.Counter(weights)      
+        self.weights = util.Counter(weights)
 
     def getWeights(self):
         return self.weights
@@ -198,7 +214,7 @@ class ApproximateQAgent(PacmanQAgent):
         Should update your weights based on transition
         """
         features = self.featExtractor.getFeatures(state, action)
-        correction = reward + self.discount*self.getValue(nextState) - self.getQValue(state, action)
+        correction = reward + self.discount * self.getValue(nextState) - self.getQValue(state, action)
         for feature in features:
             self.weights[feature] += self.alpha * correction * features[feature]
 
@@ -216,17 +232,9 @@ class ApproximateQAgent(PacmanQAgent):
 class GhostQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
 
-    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, numTraining=0, **args):
+    def __init__(self, index, epsilon=0.25, gamma=0.8, alpha=0.25, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
-        For example, to change the exploration rate, try:
-            python pacman.py -p PacmanQLearningAgent -a epsilon=0.1
-
-        alpha    - learning rate
-        epsilon  - exploration rate
-        gamma    - discount factor
-        index    - ghost index
-        numTraining - number of training episodes, i.e. no learning after these many episodes
         """
         args['epsilon'] = epsilon
         args['gamma'] = gamma
@@ -237,10 +245,21 @@ class GhostQAgent(QLearningAgent):
 
     def getAction(self, state):
         """
-        Simply calls the getAction method of QLearningAgent and then
-        informs parent of action for Pacman.  Do not change or remove this
-        method.
+        Calls the getAction method of QLearningAgent and then
+        informs parent of action for Pacman.
         """
         action = QLearningAgent.getAction(self, state)
         self.doAction(state, action)
         return action
+
+    def final(self, state):
+        """
+        This method is called by the game after a learning episode ends.
+        It saves the Q-table every 100 episodes and prints the average score.
+        """
+        # Call the parent class's final method
+        QLearningAgent.final(self, state)
+
+        # Save the Q-table
+        if self.episodesSoFar % 100 == 0 and self.q_table_name:
+            self.save_q_table(self.q_table_name)

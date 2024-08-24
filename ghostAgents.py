@@ -50,8 +50,7 @@ class DirectionalGhost( GhostAgent ):
         pos = state.getGhostPosition( self.index )
         isScared = ghostState.scaredTimer > 0
 
-        speed = 1
-        if isScared: speed = 0.5
+        speed = 0.5 if isScared else 1
 
         actionVectors = [Actions.directionToVector( a, speed ) for a in legalActions]
         newPositions = [( pos[0]+a[0], pos[1]+a[1] ) for a in actionVectors]
@@ -73,3 +72,110 @@ class DirectionalGhost( GhostAgent ):
         for a in legalActions: dist[a] += ( 1-bestProb ) / len(legalActions)
         dist.normalize()
         return dist
+
+class AStarGhost(GhostAgent):
+    def __init__(self, index):
+        super().__init__(index)
+
+    def ghostHeuristic(self, ghostPosition, pacmanPosition, coins):
+        """
+        Heuristic that estimates the cost from the ghost's current position to the nearest coin relative to Pacman.
+        """
+        if not coins:
+            return 0
+
+        # Find the coin closest to Pacman
+        closest_coin_to_pacman = min(coins, key=lambda coin: manhattanDistance(pacmanPosition, coin))
+
+        # Compute the distance from the ghost to the closest coin to Pacman
+        ghost_to_coin_distance = manhattanDistance(ghostPosition, closest_coin_to_pacman)
+
+        return ghost_to_coin_distance
+
+    def aStarSearch(self, startState, goalState, state):
+        """
+        A* search to find the optimal path to the goal from the ghost's current position.
+        """
+        open_list = util.PriorityQueue()
+        open_list.push((startState, []), 0)
+        visited = set()
+
+        while not open_list.isEmpty():
+            currentState, actions = open_list.pop()
+
+            if currentState in visited:
+                continue
+
+            visited.add(currentState)
+
+            if currentState == goalState:
+                return actions
+
+            for action in state.getLegalActions(self.index):
+                if action == Directions.STOP:  # Skip the "stop" action
+                    continue
+
+                dx, dy = Actions.directionToVector(action)
+                next_x, next_y = int(currentState[0] + dx), int(currentState[1] + dy)
+                nextState = (next_x, next_y)
+
+                if nextState not in visited and not state.hasWall(next_x, next_y):
+                    newActions = actions + [action]
+                    g_cost = len(newActions)
+                    h_cost = self.ghostHeuristic(nextState, state.getPacmanPosition(), state.getFood().asList())
+                    f_cost = g_cost + h_cost
+                    open_list.push((nextState, newActions), f_cost)
+
+        return []
+
+    def getDistribution(self, state):
+        """
+        Determine the distribution of actions for the ghost using A* search.
+        """
+        ghostPosition = state.getGhostPosition(self.index)
+        pacmanPosition = state.getPacmanPosition()
+        coins = state.getFood().asList()
+        ghostState = state.getGhostState(self.index)
+        isScared = ghostState.scaredTimer > 0
+
+        # Adjust speed when scared
+        speed = 0.5 if isScared else 1
+
+        if isScared:
+            # Flee from Pacman when scared
+            actions = state.getLegalActions(self.index)
+            actions = [a for a in actions if a != Directions.STOP]
+            if not actions:
+                return util.Counter()
+
+            actionVectors = [Actions.directionToVector(a, speed) for a in actions]
+            newPositions = [(ghostPosition[0] + a[0], ghostPosition[1] + a[1]) for a in actionVectors]
+            distancesToPacman = [manhattanDistance(pos, pacmanPosition) for pos in newPositions]
+
+            # Select action that maximizes distance from Pacman
+            bestDistance = max(distancesToPacman)
+            bestActions = [a for a, dist in zip(actions, distancesToPacman) if dist == bestDistance]
+
+            dist = util.Counter()
+            for a in bestActions:
+                dist[a] = 1.0 / len(bestActions)
+            return dist
+        else:
+            # If not scared, chase the closest coin to Pacman
+            if not coins:
+                return util.Counter()
+
+            closest_coin_to_pacman = min(coins, key=lambda coin: manhattanDistance(pacmanPosition, coin))
+
+            # Use A* search to find the optimal path to this coin
+            actions = self.aStarSearch(ghostPosition, closest_coin_to_pacman, state)
+
+            dist = util.Counter()
+            if len(actions) > 0:
+                dist[actions[0]] = 1.0
+            else:
+                legalActions = [a for a in state.getLegalActions(self.index) if a != Directions.STOP]
+                if legalActions:
+                    dist[random.choice(legalActions)] = 1.0
+
+            return dist
