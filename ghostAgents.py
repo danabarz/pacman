@@ -12,7 +12,6 @@ from game import Directions
 import random
 from util import manhattanDistance
 import util
-import search
 
 class GhostAgent( Agent ):
     def __init__( self, index ):
