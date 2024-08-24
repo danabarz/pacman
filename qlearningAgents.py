@@ -8,76 +8,83 @@
 
 import pickle
 import random
-
 import util
 from learningAgents import ReinforcementAgent
 
 
 class QLearningAgent(ReinforcementAgent):
     """
-      Q-Learning Agent
+    Q-Learning Agent
 
-      Functions you should fill in:
-        - computeValueFromQValues
-        - computeActionFromQValues
-        - getQValue
-        - getAction
-        - update
+    Functions you should fill in:
+    - computeValueFromQValues
+    - computeActionFromQValues
+    - getQValue
+    - getAction
+    - update
 
-      Instance variables you have access to
-        - self.epsilon (exploration prob)
-        - self.alpha (learning rate)
-        - self.discount (discount rate)
+    Instance variables you have access to
+    - self.epsilon (exploration prob)
+    - self.alpha (learning rate)
+    - self.discount (discount rate)
 
-      Functions you should use
-        - self.getLegalActions(state)
-          which returns legal actions for a state
+    Functions you should use
+    - self.getLegalActions(state)
+        which returns legal actions for a state
     """
 
-    def __init__(self, q_table_file=None, **args):
+    def __init__(self, q_table_name=None, **args):
         "You can initialize Q-values here..."
         ReinforcementAgent.__init__(self, **args)
         self.qvalues = {}
-        self.q_table = {}
-        if q_table_file:
-            self.load_q_table(q_table_file)
+        self.q_table_name = q_table_name
+        if q_table_name:
+            self.load_q_table(q_table_name)
 
     def save_q_table(self, file_name):
-        """Saves the Q-table to a file."""
-        with open(file_name, 'wb') as f:
-            pickle.dump(self.q_table, f)
-        print(f"Q-table saved to {file_name}")
+        """Saves the Q-table to a file with backup and error handling."""
+        try:
+            # Save to a temporary file first
+            temp_file_name = file_name + ".tmp"
+            with open(temp_file_name, 'wb') as f:
+                pickle.dump(self.qvalues, f)
+            # Replace the old file with the new one
+            import os
+            os.replace(temp_file_name, file_name)
+            print(f"Q-table successfully saved to {file_name}")
+        except IOError as e:
+            print(f"Error saving Q-table to {file_name}: {e}")
 
     def load_q_table(self, file_name):
-        """Loads the Q-table from a file."""
+        """Loads the Q-table from a file with enhanced error handling."""
         try:
             with open(file_name, 'rb') as f:
-                self.q_table = pickle.load(f)
+                self.qvalues = pickle.load(f)
             print(f"Q-table loaded from {file_name}")
         except FileNotFoundError:
             print(f"No Q-table found at {file_name}. Starting with an empty Q-table.")
-            self.q_table = {}
+            self.qvalues = {}
+        except (pickle.UnpicklingError, IOError) as e:
+            print(f"Error loading Q-table from {file_name}. Starting with an empty Q-table. Error: {e}")
+            self.qvalues = {}
 
     def getQValue(self, state, action):
         """
-          Returns Q(state,action)
-          Should return 0.0 if we have never seen a state
-          or the Q node value otherwise
+        Returns Q(state,action)
+        Should return 0.0 if we have never seen a state
+        or the Q node value otherwise
         """
-        if (state, action) in self.qvalues:
-            return self.qvalues[(state, action)]
-        else:
-            return 0.0
+        return self.qvalues.get((state, action), 0.0)
 
     def setQValue(self, state, action, value):
         self.qvalues[(state, action)] = value
 
     def computeValueFromQValues(self, state):
         """
-          Returns max_action Q(state,action)
-          where the max is over legal actions.  Note that if
-          there are no legal actions, which is the case at the
-          terminal state, you should return a value of 0.0.
+        Returns max_action Q(state,action)
+        where the max is over legal actions.  Note that if
+        there are no legal actions, which is the case at the
+        terminal state, you should return a value of 0.0.
         """
         qvalues = [self.getQValue(state, action) for action in self.getLegalActions(state)]
         if not len(qvalues): return 0.0
@@ -85,29 +92,28 @@ class QLearningAgent(ReinforcementAgent):
 
     def computeActionFromQValues(self, state):
         """
-          Compute the best action to take in a state.  Note that if there
-          are no legal actions, which is the case at the terminal state,
-          you should return None.
+        Compute the best action to take in a state. If there are no legal actions,
+        return None.
         """
         best_value = self.getValue(state)
-        best_actions = [action for action in self.getLegalActions(state) \
-                        if self.getQValue(state, action) == best_value]
-
-        if not len(best_actions):
+        legal_actions = self.getLegalActions(state)
+        
+        if not legal_actions:
             return None
-        else:
-            return random.choice(best_actions)
+        
+        best_actions = [action for action in legal_actions if self.getQValue(state, action) == best_value]
+        return random.choice(best_actions) if best_actions else None
 
     def getAction(self, state):
         """
-          Compute the action to take in the current state.  With
-          probability self.epsilon, we should take a random action and
-          take the best policy action otherwise.  Note that if there are
-          no legal actions, which is the case at the terminal state, you
-          should choose None as the action.
+        Compute the action to take in the current state.  With
+        probability self.epsilon, we should take a random action and
+        take the best policy action otherwise.  Note that if there are
+        no legal actions, which is the case at the terminal state, you
+        should choose None as the action.
 
-          HINT: You might want to use util.flipCoin(prob)
-          HINT: To pick randomly from a list, use random.choice(list)
+        HINT: You might want to use util.flipCoin(prob)
+        HINT: To pick randomly from a list, use random.choice(list)
         """
         # Pick Action
         legal_actions = self.getLegalActions(state)
@@ -122,28 +128,15 @@ class QLearningAgent(ReinforcementAgent):
 
     def update(self, state, action, nextState, reward):
         """
-          The parent class calls this to observe a
-          state = action => nextState and reward transition.
-          You should do your Q-Value update here
-
-          NOTE: You should never call this function,
-          it will be called on your behalf
-          
-          next_value = max[a'] Q(s', a')
-          donde s' es el siguiente estado
-          
-          The update se realiza al llegar al estado s' y es realizado por la ecuacion:
-            
-            - Q(s, a) = (1-alpha) * Q(s, a) + alpha * (R(s,a,s') + disc * max{a'}[Q(s',a')])
+        Update the Q-value for the state-action pair using the Bellman equation:
+        Q(s, a) = (1 - alpha) * Q(s, a) + alpha * (reward + discount * max_{a'} Q(s', a'))
+        where s' is the next state, a' is the next action, and alpha is the learning rate.
         """
         disc = self.discount
         alpha = self.alpha
         qvalue = self.getQValue(state, action)
         next_value = self.getValue(nextState)
-
-        # new_value = qvalue + alpha * (reward + disc * next_value - qvalue)
         new_value = (1 - alpha) * qvalue + alpha * (reward + disc * next_value)
-
         self.setQValue(state, action, new_value)
 
     def getPolicy(self, state):
@@ -187,11 +180,11 @@ class PacmanQAgent(QLearningAgent):
 
 class ApproximateQAgent(PacmanQAgent):
     """
-       ApproximateQLearningAgent
+    ApproximateQLearningAgent
 
-       You should only have to overwrite getQValue
-       and update.  All other QLearningAgent functions
-       should work as is.
+    You should only have to overwrite getQValue
+    and update.  All other QLearningAgent functions
+    should work as is.
     """
 
     def __init__(self, extractor='IdentityExtractor', **args):
@@ -238,9 +231,8 @@ class ApproximateQAgent(PacmanQAgent):
 
 class GhostQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
-    EP_COUNTER = 0
 
-    def __init__(self, index, epsilon=0.25, gamma=0.8, alpha=0.25, numTraining=0, q_table_file=None, **args):
+    def __init__(self, index, epsilon=0.25, gamma=0.8, alpha=0.25, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         """
@@ -249,15 +241,7 @@ class GhostQAgent(QLearningAgent):
         args['alpha'] = alpha
         args['numTraining'] = numTraining
         self.index = index
-        self.q_table_file = q_table_file
         QLearningAgent.__init__(self, actionFn=lambda state: state.getLegalActions(index), **args)
-
-        # Load Q-table if a file is provided
-        self.q_table = {}
-        self.episodeScores = []
-        if q_table_file:
-            self.load_q_table(q_table_file)
-
 
     def getAction(self, state):
         """
@@ -273,22 +257,9 @@ class GhostQAgent(QLearningAgent):
         This method is called by the game after a learning episode ends.
         It saves the Q-table every 100 episodes and prints the average score.
         """
-        # Record the score for the current episode
-        self.episodeScores.append(state.getScore())
-
-        # Every 100 episodes, calculate the average score and save the Q-table
-        if self.episodesSoFar % 100 == 0:
-            average_score = sum(self.episodeScores) / len(self.episodeScores)
-            print(f"Episode {self.episodesSoFar} finished.")
-            print(f"  - Average score over the last 100 episodes: {average_score}")
-            print(f"  - Number of training episodes left: {max(0, self.numTraining - self.episodesSoFar)}")
-
-            # Save the Q-table
-            if self.q_table_file:
-                self.save_q_table(self.q_table_file)
-
-            # Reset the scores for the next batch of 100 episodes
-            self.episodeScores = []
-
         # Call the parent class's final method
         QLearningAgent.final(self, state)
+
+        # Save the Q-table
+        if self.episodesSoFar % 100 == 0 and self.q_table_name:
+            self.save_q_table(self.q_table_name)

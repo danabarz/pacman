@@ -439,7 +439,7 @@ class GhostRules:
 
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
-            # state.data.scoreChange -= 200
+            state.data.scoreChange -= 100
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
@@ -535,7 +535,7 @@ def readCommand(argv):
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
 
     # New option for Q-table file
-    parser.add_option('--q_table_file', dest='q_table_file', type='str',
+    parser.add_option('--q_table_name', dest='q_table_name', type='str',
                       help='Path to the Q-table file to load/save', default=None)
 
     options, otherjunk = parser.parse_args(argv)
@@ -561,9 +561,9 @@ def readCommand(argv):
     ghostType = loadAgent(options.ghost, noKeyboard)
     ghostOpts = parseAgentArgs(options.agentArgs)
 
-    # Pass q_table_file to the Ghost agent if provided
-    if options.q_table_file:
-        ghostOpts['q_table_file'] = options.q_table_file
+    # Pass q_table_name to the Ghost agent if provided
+    if options.q_table_name:
+        ghostOpts['q_table_name'] = options.q_table_name
 
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
@@ -708,8 +708,6 @@ if __name__ == '__main__':
     > python pacman.py --help
     """
     args = readCommand(sys.argv[1:])  # Get game components based on input
-    # agent = qlearningAgents.QLearningAgent(q_table_file=args.q_table_file, **args)
-
     runGames( **args)
 
     # import cProfile
