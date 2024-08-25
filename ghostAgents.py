@@ -180,8 +180,6 @@ class AStarGhost(GhostAgent):
 
             return dist
 
-import random
-from util import manhattanDistance
 
 class MinMaxGhost(GhostAgent):
     def __init__(self, index, depth=2):
