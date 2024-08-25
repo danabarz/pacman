@@ -232,7 +232,7 @@ class ApproximateQAgent(PacmanQAgent):
 class GhostQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
 
-    def __init__(self, index, epsilon=0.25, gamma=0.8, alpha=0.25, numTraining=0, **args):
+    def __init__(self, index, epsilon=0.3, gamma=0.8, alpha=0.3, numTraining=1000, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         """

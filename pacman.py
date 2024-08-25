@@ -109,7 +109,7 @@ class GameState:
 
         # Book keeping
         state.data._agentMoved = agentIndex
-        state.data.score += state.data.scoreChange
+        state.data.score -= state.data.scoreChange
         # print(state.data.score)
         return state
 
@@ -357,14 +357,14 @@ class PacmanRules:
         x, y = position
         # Eat food
         if state.data.food[x][y]:
-            state.data.scoreChange -= 10
+            state.data.scoreChange += 10
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
-                state.data.scoreChange -= 500
+                state.data.scoreChange += 500
                 state.data._win = True
         # Eat capsule
         if (position in state.getCapsules()):
@@ -439,14 +439,14 @@ class GhostRules:
 
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
-            state.data.scoreChange -= 100
+            state.data.scoreChange += 10
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
             state.data._eaten[agentIndex] = True
         else:
             if not state.data._win:
-                state.data.scoreChange += 500
+                state.data.scoreChange -= 500
                 state.data._lose = True
 
     collide = staticmethod(collide)
