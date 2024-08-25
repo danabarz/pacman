@@ -181,3 +181,80 @@ class AStarGhost(GhostAgent):
                     dist[random.choice(legalActions)] = 1.0
 
             return dist
+
+class MinMaxGhost(GhostAgent):
+    def __init__(self, index, depth=2):
+        super().__init__(index)
+        self.depth = depth
+
+    def evaluationFunction(self, state):
+        """
+        Evaluation function that returns Pacman's current score.
+        """
+        return state.getScore()
+
+    def minmax(self, state, depth, agentIndex):
+        """
+        Minimax algorithm implementation.
+        """
+        # If the game is over or maximum depth is reached, return the evaluation of the state
+        if state.isWin() or state.isLose() or depth == 0:
+            return self.evaluationFunction(state)
+
+        # Determine the number of agents (Pacman + all ghosts)
+        numAgents = state.getNumAgents()
+
+        # Pacman's turn (Maximizer)
+        if agentIndex == 0:
+            return self.maxValue(state, depth)
+
+        # Ghost's turn (Minimizer)
+        else:
+            return self.minValue(state, depth, agentIndex)
+
+    def maxValue(self, state, depth):
+        """
+        Max function for Pacman.
+        """
+        v = float('-inf')
+        legalActions = state.getLegalActions(0)  # Pacman's legal actions
+
+        for action in legalActions:
+            successorState = state.generateSuccessor(0, action)
+            v = max(v, self.minmax(successorState, depth - 1, 1))
+
+        return v
+
+    def minValue(self, state, depth, agentIndex):
+        """
+        Min function for the ghost.
+        """
+        v = float('inf')
+        legalActions = state.getLegalActions(agentIndex)
+
+        nextAgent = (agentIndex + 1) % state.getNumAgents()
+        nextDepth = depth if nextAgent != 0 else depth - 1  # Reduce depth when all agents have moved
+
+        for action in legalActions:
+            successorState = state.generateSuccessor(agentIndex, action)
+            v = min(v, self.minmax(successorState, nextDepth, nextAgent))
+
+        return v
+
+    def getAction(self, state):
+        """
+        Returns the minimax action from the current gameState using self.depth and self.evaluationFunction.
+        """
+        legalActions = state.getLegalActions(self.index)
+        bestAction = None
+        bestValue = float('inf')
+
+        for action in legalActions:
+            successorState = state.generateSuccessor(self.index, action)
+            value = self.minmax(successorState, self.depth, (self.index + 1) % state.getNumAgents())
+
+            if value < bestValue:
+                bestValue = value
+                bestAction = action
+
+        return bestAction
