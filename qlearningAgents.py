@@ -267,10 +267,10 @@ class GhostQAgent(QLearningAgent):
         new_distance = util.manhattanDistance(pacman_pos, ghost_pos)
 
         if new_distance < old_distance:
-            reward += 10
+            reward += 20
 
-        elif new_distance > old_distance and nextState.getGhostState(self.index).scaredTimer == 0:
-            reward -= 10
+        elif new_distance < old_distance and nextState.getGhostState(self.index).scaredTimer > 0:
+            reward -= 20
         
         QLearningAgent.update(self, state, action, nextState, reward)
 
