@@ -132,11 +132,19 @@ class QLearningAgent(ReinforcementAgent):
         Q(s, a) = (1 - alpha) * Q(s, a) + alpha * (reward + discount * max_{a'} Q(s', a'))
         where s' is the next state, a' is the next action, and alpha is the learning rate.
         """
+        # disc = self.discount
+        # alpha = self.alpha
+        # qvalue = self.getQValue(state, action)
+        # next_value = self.getValue(nextState)
+        # new_value = (1 - alpha) * qvalue + alpha * (reward + disc * next_value)
+        # self.setQValue(state, action, new_value)
         disc = self.discount
         alpha = self.alpha
+        
         qvalue = self.getQValue(state, action)
         next_value = self.getValue(nextState)
-        new_value = (1 - alpha) * qvalue + alpha * (reward + disc * next_value)
+        td_error = reward + disc * next_value - qvalue
+        new_value = qvalue + alpha * td_error
         self.setQValue(state, action, new_value)
 
     def getPolicy(self, state):
@@ -232,7 +240,7 @@ class ApproximateQAgent(PacmanQAgent):
 class GhostQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
 
-    def __init__(self, index, epsilon=0.3, gamma=0.8, alpha=0.3, numTraining=1000, **args):
+    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         """
