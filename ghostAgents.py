@@ -180,6 +180,9 @@ class AStarGhost(GhostAgent):
 
             return dist
 
+import random
+from util import manhattanDistance
+
 class MinMaxGhost(GhostAgent):
     def __init__(self, index, depth=2):
         super().__init__(index)
@@ -187,51 +190,59 @@ class MinMaxGhost(GhostAgent):
 
     def evaluationFunction(self, state):
         """
-        Evaluation function that returns Pacman's current score.
+        Evaluation function for the MinMaxGhost.
+        When the ghost is not scared, it tries to maximize the number of food pellets by moving towards Pacman.
+        When scared, it tries to flee from Pacman.
         """
-        return state.getScore()
+        ghostState = state.getGhostState(self.index)
+        ghostPosition = state.getGhostPosition(self.index)
+        pacmanPosition = state.getPacmanPosition()
+        numFood = state.getNumFood()
+
+        # If ghost is scared, prioritize fleeing from Pacman
+        if ghostState.scaredTimer > 0:
+            return manhattanDistance(ghostPosition, pacmanPosition)
+
+        # Otherwise, prioritize moving towards Pacman while considering food count
+        return -manhattanDistance(ghostPosition, pacmanPosition) + numFood * 1000
 
     def minmax(self, state, depth, agentIndex):
         """
-        Minimax algorithm implementation.
+        Minimax algorithm implementation where the ghost minimizes/maximizes based on the evaluation function.
         """
-        # If the game is over or maximum depth is reached, return the evaluation of the state
         if state.isWin() or state.isLose() or depth == 0:
             return self.evaluationFunction(state)
 
-        # Determine the number of agents (Pacman + all ghosts)
-        numAgents = state.getNumAgents()
-
-        # Pacman's turn (Maximizer)
-        if agentIndex == 0:
+        if agentIndex == 0:  # Pacman's turn (Maximizer)
             return self.maxValue(state, depth)
-
-        # Ghost's turn (Minimizer)
-        else:
+        else:  # Ghost's turn (Minimizer)
             return self.minValue(state, depth, agentIndex)
 
     def maxValue(self, state, depth):
         """
         Max function for Pacman.
+        Pacman tries to minimize the number of food pellets left on the map.
         """
         v = float('-inf')
         legalActions = state.getLegalActions(0)  # Pacman's legal actions
 
         for action in legalActions:
             successorState = state.generateSuccessor(0, action)
-            v = max(v, self.minmax(successorState, depth - 1, 1))
+            v = max(v, self.minmax(successorState, depth, 1))  # Proceed to Ghost's turn
 
         return v
 
     def minValue(self, state, depth, agentIndex):
         """
         Min function for the ghost.
+        The ghost tries to maximize the number of food pellets left on the map.
+        When scared, the ghost tries to flee from Pacman.
         """
         v = float('inf')
         legalActions = state.getLegalActions(agentIndex)
 
         nextAgent = (agentIndex + 1) % state.getNumAgents()
-        nextDepth = depth if nextAgent != 0 else depth - 1  # Reduce depth when all agents have moved
+        nextDepth = depth - 1 if nextAgent == 0 else depth  # Reduce depth only when all agents have moved
 
         for action in legalActions:
             successorState = state.generateSuccessor(agentIndex, action)
