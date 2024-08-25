@@ -12,7 +12,6 @@ from game import Directions
 import random
 from util import manhattanDistance
 import util
-import search
 
 class GhostAgent( Agent ):
     def __init__( self, index ):
@@ -51,8 +50,7 @@ class DirectionalGhost( GhostAgent ):
         pos = state.getGhostPosition( self.index )
         isScared = ghostState.scaredTimer > 0
 
-        speed = 1
-        if isScared: speed = 0.5
+        speed = 0.5 if isScared else 1
 
         actionVectors = [Actions.directionToVector( a, speed ) for a in legalActions]
         newPositions = [( pos[0]+a[0], pos[1]+a[1] ) for a in actionVectors]
