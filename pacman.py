@@ -38,7 +38,6 @@ import random
 import sys
 
 import layout
-import qlearningAgents
 from game import Actions
 from game import Directions
 from game import Game
@@ -106,6 +105,8 @@ class GameState:
 
         # Resolve multi-agent effects
         GhostRules.checkDeath(state, agentIndex)
+        # if agentIndex != 0:
+        #     GhostRules.check_dist(state, agentIndex)
 
         # Book keeping
         state.data._agentMoved = agentIndex
@@ -382,6 +383,7 @@ class GhostRules:
     These functions dictate how ghosts interact with their environment.
     """
     GHOST_SPEED = 1.0
+    bef_state = -1
 
     def getLegalActions(state, ghostIndex):
         """
@@ -437,6 +439,21 @@ class GhostRules:
 
     checkDeath = staticmethod(checkDeath)
 
+    def check_dist(state, agentIndex):
+        import util
+        pacman_pos = state.getPacmanPosition()
+        ghost_pos = state.getGhostPosition(agentIndex)
+        if (GhostRules.bef_state == -1):
+            pass
+        else:
+            old_distance = util.manhattanDistance(GhostRules.bef_state, ghost_pos)
+            new_distance = util.manhattanDistance(pacman_pos, ghost_pos)
+            if (new_distance < old_distance):
+                state.data.scoreChange += 1
+            else:
+                state.data.scoreChange -= 1
+        GhostRules.bef_state = pacman_pos
+
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
             state.data.scoreChange += 10
@@ -450,6 +467,7 @@ class GhostRules:
                 state.data._lose = True
 
     collide = staticmethod(collide)
+    check_dist = staticmethod(check_dist)
 
     def canKill(pacmanPosition, ghostPosition):
         return manhattanDistance(ghostPosition, pacmanPosition) <= COLLISION_TOLERANCE
@@ -708,7 +726,7 @@ if __name__ == '__main__':
     > python pacman.py --help
     """
     args = readCommand(sys.argv[1:])  # Get game components based on input
-    runGames( **args)
+    runGames(**args)
 
     # import cProfile
     # cProfile.run("runGames( **args )")
