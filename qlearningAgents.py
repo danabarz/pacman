@@ -41,6 +41,7 @@ class QLearningAgent(ReinforcementAgent):
         if q_table_name:
             self.load_q_table(q_table_name)
 
+
     def save_q_table(self, file_name):
         """Saves the Q-table to a file with backup and error handling."""
         try:
@@ -49,9 +50,6 @@ class QLearningAgent(ReinforcementAgent):
             with open(temp_file_name, 'wb') as f:
                 pickle.dump(self.qvalues, f)
             # Replace the old file with the new one
-            import os
-            os.replace(temp_file_name, file_name)
-            print(f"Q-table successfully saved to {file_name}")
         except IOError as e:
             print(f"Error saving Q-table to {file_name}: {e}")
 
@@ -266,11 +264,11 @@ class GhostQAgent(QLearningAgent):
         old_distance = util.manhattanDistance(state.getPacmanPosition(), ghost_pos)
         new_distance = util.manhattanDistance(pacman_pos, ghost_pos)
 
-        if new_distance < old_distance:
-            reward += 20
-
-        elif new_distance < old_distance and nextState.getGhostState(self.index).scaredTimer > 0:
-            reward -= 20
+        # if new_distance < old_distance:
+        #     reward += 20
+        #
+        # elif new_distance < old_distance and nextState.getGhostState(self.index).scaredTimer > 0:
+        #     reward -= 20
         
         QLearningAgent.update(self, state, action, nextState, reward)
 
