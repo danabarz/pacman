@@ -258,20 +258,6 @@ class GhostQAgent(QLearningAgent):
         self.doAction(state, action)
         return action
 
-    def update(self, state, action, nextState, reward):
-        pacman_pos = nextState.getPacmanPosition()
-        ghost_pos = nextState.getGhostPosition(self.index)
-        old_distance = util.manhattanDistance(state.getPacmanPosition(), ghost_pos)
-        new_distance = util.manhattanDistance(pacman_pos, ghost_pos)
-
-        # if new_distance < old_distance:
-        #     reward += 20
-        #
-        # elif new_distance < old_distance and nextState.getGhostState(self.index).scaredTimer > 0:
-        #     reward -= 20
-        
-        QLearningAgent.update(self, state, action, nextState, reward)
-
     def final(self, state):
         """
         This method is called by the game after a learning episode ends.
