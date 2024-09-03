@@ -99,7 +99,7 @@ class GameState:
 
         # Time passes
         if agentIndex == 0:
-            state.data.scoreChange += TIME_PENALTY  # Penalty for waiting around
+            state.data.scoreChange -= TIME_PENALTY  # Penalty for waiting around
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
@@ -110,7 +110,7 @@ class GameState:
 
         # Book keeping
         state.data._agentMoved = agentIndex
-        state.data.score -= state.data.scoreChange
+        state.data.score += state.data.scoreChange
         # print(state.data.score)
         return state
 
@@ -154,8 +154,8 @@ class GameState:
     def getNumAgents(self):
         return len(self.data.agentStates)
 
-    def getScore(self):
-        return self.data.score
+    def getScore(self, isGhost=False):
+        return -self.data.score if isGhost else self.data.score
 
     def getCapsules(self):
         """
@@ -383,7 +383,6 @@ class GhostRules:
     These functions dictate how ghosts interact with their environment.
     """
     GHOST_SPEED = 1.0
-    bef_state = -1
 
     def getLegalActions(state, ghostIndex):
         """
@@ -439,24 +438,16 @@ class GhostRules:
 
     checkDeath = staticmethod(checkDeath)
 
-    def check_dist(state, agentIndex):
-        import util
-        pacman_pos = state.getPacmanPosition()
-        ghost_pos = state.getGhostPosition(agentIndex)
-        if (GhostRules.bef_state == -1):
-            pass
-        else:
-            old_distance = util.manhattanDistance(GhostRules.bef_state, ghost_pos)
-            new_distance = util.manhattanDistance(pacman_pos, ghost_pos)
-            if (new_distance < old_distance):
-                state.data.scoreChange += 1
-            else:
-                state.data.scoreChange -= 1
-        GhostRules.bef_state = pacman_pos
+    # def check_dist(state, agentIndex):
+    #     import util
+    #     pacman_pos = state.getPacmanPosition()
+    #     ghost_pos = state.getGhostPosition(agentIndex)
+    #     distance = util.manhattanDistance(pacman_pos, ghost_pos)
+    #     state.data.scoreChange -= distance
 
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
-            state.data.scoreChange += 10
+            state.data.scoreChange += 200
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
@@ -467,7 +458,7 @@ class GhostRules:
                 state.data._lose = True
 
     collide = staticmethod(collide)
-    check_dist = staticmethod(check_dist)
+    # check_dist = staticmethod(check_dist)
 
     def canKill(pacmanPosition, ghostPosition):
         return manhattanDistance(ghostPosition, pacmanPosition) <= COLLISION_TOLERANCE
