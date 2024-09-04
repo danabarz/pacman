@@ -41,15 +41,20 @@ class QLearningAgent(ReinforcementAgent):
         if q_table_name:
             self.load_q_table(q_table_name)
 
-
     def save_q_table(self, file_name):
         """Saves the Q-table to a file with backup and error handling."""
         try:
             # Save to a temporary file first
             temp_file_name = file_name + ".tmp"
             with open(temp_file_name, 'wb') as f:
+                print("Saving Q-table to temporary file:", temp_file_name)
                 pickle.dump(self.qvalues, f)
+
             # Replace the old file with the new one
+            import os
+            os.replace(temp_file_name, file_name)
+            print(f"Q-table successfully saved to {file_name}")
+
         except IOError as e:
             print(f"Error saving Q-table to {file_name}: {e}")
 
@@ -58,6 +63,17 @@ class QLearningAgent(ReinforcementAgent):
         try:
             with open(file_name, 'rb') as f:
                 self.qvalues = pickle.load(f)
+                # print("Type of data:", type(self.qvalues))
+                # if isinstance(self.qvalues , dict):
+                #     print("Contents of the dictionary:")
+                #     for key, value in self.qvalues .items():
+                #         print(f"Key: {key}, Value: {value}")
+                # elif isinstance(self.qvalues , list):
+                #     print("Contents of the list:")
+                #     for item in self.qvalues :
+                #         print(item)
+                # else:
+                #     print("Data:", self.qvalues )
             print(f"Q-table loaded from {file_name}")
         except FileNotFoundError:
             print(f"No Q-table found at {file_name}. Starting with an empty Q-table.")
@@ -258,6 +274,23 @@ class GhostQAgent(QLearningAgent):
         self.doAction(state, action)
         return action
 
+    def update(self, state, action, nextState, reward):
+        # pacman_pos = state.getPacmanPosition()
+        # ghost_pos = state.getGhostPosition(self.index)
+        # distance = util.manhattanDistance(pacman_pos, ghost_pos)
+        # reward -= distance
+        ghost_pos = nextState.getGhostPosition(self.index)
+        old_distance = util.manhattanDistance(state.getPacmanPosition(), ghost_pos)
+        new_distance = util.manhattanDistance(nextState.getPacmanPosition(), ghost_pos)
+        reward = reward + new_distance if new_distance < old_distance else reward - new_distance
+        # reward -= abs(new_distance-old_distance)
+        # reward -= new_distance
+
+        # if new_distance < old_distance and nextState.getGhostState(self.index).scaredTimer > 0:
+        #     reward -= new_distance
+
+        QLearningAgent.update(self, state, action, nextState, reward)
+
     def final(self, state):
         """
         This method is called by the game after a learning episode ends.
@@ -268,4 +301,5 @@ class GhostQAgent(QLearningAgent):
 
         # Save the Q-table
         if self.episodesSoFar % 100 == 0 and self.q_table_name:
+            print("saving Q-table to file: {}".format(self.q_table_name))
             self.save_q_table(self.q_table_name)

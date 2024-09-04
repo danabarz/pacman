@@ -99,7 +99,7 @@ class GameState:
 
         # Time passes
         if agentIndex == 0:
-            state.data.scoreChange -= TIME_PENALTY  # Penalty for waiting around
+            state.data.scoreChange += TIME_PENALTY  # Penalty for waiting around
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
