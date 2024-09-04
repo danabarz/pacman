@@ -3,4 +3,4 @@ __pycache__/
 .gitignore
 *.pkl
 .venv/
-*.tmp
+*.tmpç
