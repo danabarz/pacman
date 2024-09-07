@@ -733,14 +733,14 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
         loseRate = loses.count(True) / float(len(loses)
                                              ) if len(loses) > 0 else 0
-        print('Average Score:', sum(scores) / float(len(scores)))
         print('Scores:       ', ', '.join([str(score) for score in scores]))
+        print('Record:       ', ', '.join(
+            [['Loss', 'Win'][int(w)] for w in wins]))
+        print('Average Score:', sum(scores) / float(len(scores)))
         print('Win Rate:      %d/%d (%.2f)' %
               (wins.count(True), len(wins), winRate))
         print('Lose Rate:      %d/%d (%.2f)' %
               (loses.count(True), len(loses), loseRate))
-        print('Record:       ', ', '.join(
-            [['Loss', 'Win'][int(w)] for w in wins]))
         avg_ghost_score(scores)
 
     return games
