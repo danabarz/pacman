@@ -42,7 +42,8 @@ class ReplayBuffer:
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.memory), batch_size, replace=False)
-        states, actions, rewards, next_states, dones = zip(*[self.memory[idx] for idx in indices])
+        states, actions, rewards, next_states, dones = zip(
+            *[self.memory[idx] for idx in indices])
         return states, actions, rewards, next_states, dones
 
     def __len__(self):
@@ -57,7 +58,7 @@ class GhostDQLAgent(ReinforcementAgent):
         args['alpha'] = alpha
         args['numTraining'] = numTraining
         ReinforcementAgent.__init__(self, **args)
-        self.index = index 
+        self.index = index
         self.state_size = FEATURE_SIZE
         self.action_size = ACTION_NUMBER
         self.lr = lr
@@ -65,7 +66,8 @@ class GhostDQLAgent(ReinforcementAgent):
         self.memory = ReplayBuffer(buffer_size)
         self.qnetwork_local = DQNetwork(self.state_size, self.action_size)
         self.qnetwork_target = DQNetwork(self.state_size, self.action_size)
-        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=self.lr)
+        self.optimizer = optim.Adam(
+            self.qnetwork_local.parameters(), lr=self.lr)
         self.tau = 0.001  # For soft update of target network
 
     def getAction(self, state):
@@ -79,7 +81,8 @@ class GhostDQLAgent(ReinforcementAgent):
             return random.choice(legal_actions)
 
         # Exploitation: predict Q-values and select the best legal action
-        state_tensor = torch.FloatTensor(self.extract_state_features(state)).unsqueeze(0)
+        state_tensor = torch.FloatTensor(
+            self.extract_state_features(state)).unsqueeze(0)
         with torch.no_grad():
             q_values = self.qnetwork_local(state_tensor)
 
@@ -90,13 +93,14 @@ class GhostDQLAgent(ReinforcementAgent):
         best_legal_action = None
         max_q_value = float('-inf')
         for action in legal_actions:
-            action_index = self.action_to_index(action)  # Map the action to its index in the Q-value list
+            # Map the action to its index in the Q-value list
+            action_index = self.action_to_index(action)
             if q_values[action_index] > max_q_value:
                 max_q_value = q_values[action_index]
                 best_legal_action = action
 
         return best_legal_action
-    
+
     def action_to_index(self, action):
         """
         Map actions to their corresponding index in the Q-value list.
@@ -111,7 +115,8 @@ class GhostDQLAgent(ReinforcementAgent):
         pacman_pos = state.getPacmanPosition()
         ghost_pos = state.getGhostPosition(self.index)
         scared_timer = state.getGhostState(self.index).scaredTimer
-        features = [pacman_pos[0], pacman_pos[1], ghost_pos[0], ghost_pos[1], scared_timer]
+        features = [pacman_pos[0], pacman_pos[1],
+                    ghost_pos[0], ghost_pos[1], scared_timer]
         return features
 
     def update(self, state, action, reward, next_state, done):
@@ -127,7 +132,8 @@ class GhostDQLAgent(ReinforcementAgent):
         if state.isLose() or next_state.isLose():
             reward += 1
 
-        self.memory.add((self.extract_state_features(state), action, reward, self.extract_state_features(next_state), done))
+        self.memory.add((self.extract_state_features(
+            state), action, reward, self.extract_state_features(next_state), done))
 
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample(self.batch_size)
@@ -139,7 +145,8 @@ class GhostDQLAgent(ReinforcementAgent):
         For instance, Pacman is trapped when he has fewer than 2 legal moves.
         """
         legal_pacman_moves = next_state.getLegalPacmanActions()
-        return len(legal_pacman_moves) <= 2  # Trapping when Pacman has only 1-2 moves left
+        # Trapping when Pacman has only 1-2 moves left
+        return len(legal_pacman_moves) <= 2
 
     def learn(self, experiences):
         """Update network weights"""
@@ -152,9 +159,11 @@ class GhostDQLAgent(ReinforcementAgent):
         dones = torch.FloatTensor(dones).unsqueeze(1)
 
         # Get max predicted Q values for next states from target model
-        next_q_values = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+        next_q_values = self.qnetwork_target(
+            next_states).detach().max(1)[0].unsqueeze(1)
         # Compute target Q values
-        target_q_values = rewards + (self.discount * next_q_values * (1 - dones))
+        target_q_values = rewards + \
+            (self.discount * next_q_values * (1 - dones))
 
         # Get expected Q values from local model
         expected_q_values = self.qnetwork_local(states).gather(1, actions)
@@ -171,9 +180,11 @@ class GhostDQLAgent(ReinforcementAgent):
     def soft_update(self, local_model, target_model):
         """Soft update model parameters"""
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
+            target_param.data.copy_(
+                self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
 
     def final(self, state):
         """This method can be used to save the model or perform any final steps after training"""
         print("Training finished. Saving model...")
-        torch.save(self.qnetwork_local.state_dict(), f"dqn_model_ghost_{self.index}.pth")
+        torch.save(self.qnetwork_local.state_dict(),
+                   f"dqn_model_ghost_{self.index}.pth")

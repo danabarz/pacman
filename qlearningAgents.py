@@ -76,10 +76,12 @@ class QLearningAgent(ReinforcementAgent):
                 #     print("Data:", self.qvalues )
             print(f"Q-table loaded from {file_name}")
         except FileNotFoundError:
-            print(f"No Q-table found at {file_name}. Starting with an empty Q-table.")
+            print(
+                f"No Q-table found at {file_name}. Starting with an empty Q-table.")
             self.qvalues = {}
         except (pickle.UnpicklingError, IOError) as e:
-            print(f"Error loading Q-table from {file_name}. Starting with an empty Q-table. Error: {e}")
+            print(
+                f"Error loading Q-table from {file_name}. Starting with an empty Q-table. Error: {e}")
             self.qvalues = {}
 
     def getQValue(self, state, action):
@@ -100,8 +102,10 @@ class QLearningAgent(ReinforcementAgent):
         there are no legal actions, which is the case at the
         terminal state, you should return a value of 0.0.
         """
-        qvalues = [self.getQValue(state, action) for action in self.getLegalActions(state)]
-        if not len(qvalues): return 0.0
+        qvalues = [self.getQValue(state, action)
+                   for action in self.getLegalActions(state)]
+        if not len(qvalues):
+            return 0.0
         return max(qvalues)
 
     def computeActionFromQValues(self, state):
@@ -111,11 +115,12 @@ class QLearningAgent(ReinforcementAgent):
         """
         best_value = self.getValue(state)
         legal_actions = self.getLegalActions(state)
-        
+
         if not legal_actions:
             return None
-        
-        best_actions = [action for action in legal_actions if self.getQValue(state, action) == best_value]
+
+        best_actions = [action for action in legal_actions if self.getQValue(
+            state, action) == best_value]
         return random.choice(best_actions) if best_actions else None
 
     def getAction(self, state):
@@ -154,7 +159,7 @@ class QLearningAgent(ReinforcementAgent):
         # self.setQValue(state, action, new_value)
         disc = self.discount
         alpha = self.alpha
-        
+
         qvalue = self.getQValue(state, action)
         next_value = self.getValue(nextState)
         td_error = reward + disc * next_value - qvalue
@@ -162,10 +167,12 @@ class QLearningAgent(ReinforcementAgent):
         self.setQValue(state, action, new_value)
 
     def getPolicy(self, state):
-        return self.computeActionFromQValues(state)  # Get best action from state
+        # Get best action from state
+        return self.computeActionFromQValues(state)
 
     def getValue(self, state):
-        return self.computeValueFromQValues(state)  # Get best q-value from state
+        # Get best q-value from state
+        return self.computeValueFromQValues(state)
 
 
 class PacmanQAgent(QLearningAgent):
@@ -236,9 +243,11 @@ class ApproximateQAgent(PacmanQAgent):
         Should update your weights based on transition
         """
         features = self.featExtractor.getFeatures(state, action)
-        correction = reward + self.discount * self.getValue(nextState) - self.getQValue(state, action)
+        correction = reward + self.discount * \
+            self.getValue(nextState) - self.getQValue(state, action)
         for feature in features:
-            self.weights[feature] += self.alpha * correction * features[feature]
+            self.weights[feature] += self.alpha * \
+                correction * features[feature]
 
     def final(self, state):
         "Called at the end of each game."
@@ -263,7 +272,8 @@ class GhostQAgent(QLearningAgent):
         args['alpha'] = alpha
         args['numTraining'] = numTraining
         self.index = index
-        QLearningAgent.__init__(self, actionFn=lambda state: state.getLegalActions(index), **args)
+        QLearningAgent.__init__(
+            self, actionFn=lambda state: state.getLegalActions(index), **args)
 
     def getAction(self, state):
         """
@@ -280,8 +290,10 @@ class GhostQAgent(QLearningAgent):
         # distance = util.manhattanDistance(pacman_pos, ghost_pos)
         # reward -= distance
         ghost_pos = nextState.getGhostPosition(self.index)
-        old_distance = util.manhattanDistance(state.getPacmanPosition(), ghost_pos)
-        new_distance = util.manhattanDistance(nextState.getPacmanPosition(), ghost_pos)
+        old_distance = util.manhattanDistance(
+            state.getPacmanPosition(), ghost_pos)
+        new_distance = util.manhattanDistance(
+            nextState.getPacmanPosition(), ghost_pos)
         reward = reward + new_distance if new_distance < old_distance else reward - new_distance
         # reward -= abs(new_distance-old_distance)
         # reward -= new_distance

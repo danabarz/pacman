@@ -13,65 +13,77 @@ import random
 from util import manhattanDistance
 import util
 
-class GhostAgent( Agent ):
-    def __init__( self, index ):
+
+class GhostAgent(Agent):
+    def __init__(self, index):
         self.index = index
 
-    def getAction( self, state ):
+    def getAction(self, state):
         dist = self.getDistribution(state)
         if len(dist) == 0:
             return Directions.STOP
         else:
-            return util.chooseFromDistribution( dist )
+            return util.chooseFromDistribution(dist)
 
     def getDistribution(self, state):
         "Returns a Counter encoding a distribution over actions from the provided state."
         util.raiseNotDefined()
 
-class RandomGhost( GhostAgent ):
+
+class RandomGhost(GhostAgent):
     "A ghost that chooses a legal action uniformly at random."
-    def getDistribution( self, state ):
+
+    def getDistribution(self, state):
         dist = util.Counter()
-        for a in state.getLegalActions( self.index ): dist[a] = 1.0
+        for a in state.getLegalActions(self.index):
+            dist[a] = 1.0
         dist.normalize()
         return dist
 
-class DirectionalGhost( GhostAgent ):
+
+class DirectionalGhost(GhostAgent):
     "A ghost that prefers to rush Pacman, or flee when scared."
-    def __init__( self, index, prob_attack=0.8, prob_scaredFlee=0.8 ):
+
+    def __init__(self, index, prob_attack=0.8, prob_scaredFlee=0.8):
         self.index = index
         self.prob_attack = prob_attack
         self.prob_scaredFlee = prob_scaredFlee
 
-    def getDistribution( self, state ):
+    def getDistribution(self, state):
         # Read variables from state
-        ghostState = state.getGhostState( self.index )
-        legalActions = state.getLegalActions( self.index )
-        pos = state.getGhostPosition( self.index )
+        ghostState = state.getGhostState(self.index)
+        legalActions = state.getLegalActions(self.index)
+        pos = state.getGhostPosition(self.index)
         isScared = ghostState.scaredTimer > 0
 
         speed = 0.5 if isScared else 1
 
-        actionVectors = [Actions.directionToVector( a, speed ) for a in legalActions]
-        newPositions = [( pos[0]+a[0], pos[1]+a[1] ) for a in actionVectors]
+        actionVectors = [Actions.directionToVector(
+            a, speed) for a in legalActions]
+        newPositions = [(pos[0]+a[0], pos[1]+a[1]) for a in actionVectors]
         pacmanPosition = state.getPacmanPosition()
 
         # Select best actions given the state
-        distancesToPacman = [manhattanDistance( pos, pacmanPosition ) for pos in newPositions]
+        distancesToPacman = [manhattanDistance(
+            pos, pacmanPosition) for pos in newPositions]
         if isScared:
-            bestScore = max( distancesToPacman )
+            bestScore = max(distancesToPacman)
             bestProb = self.prob_scaredFlee
         else:
-            bestScore = min( distancesToPacman )
+            bestScore = min(distancesToPacman)
             bestProb = self.prob_attack
-        bestActions = [action for action, distance in zip( legalActions, distancesToPacman ) if distance == bestScore]
+        bestActions = [action for action, distance in zip(
+            legalActions, distancesToPacman) if distance == bestScore]
 
         # Construct distribution
         dist = util.Counter()
-        for a in bestActions: dist[a] = bestProb / len(bestActions)
-        for a in legalActions: dist[a] += ( 1-bestProb ) / len(legalActions)
+        for a in bestActions:
+            dist[a] = bestProb / len(bestActions)
+        for a in legalActions:
+            dist[a] += (1-bestProb) / len(legalActions)
         dist.normalize()
         return dist
+
 
 class AStarGhost(GhostAgent):
     def __init__(self, index):
@@ -85,10 +97,12 @@ class AStarGhost(GhostAgent):
             return 0
 
         # Find the coin closest to Pacman
-        closest_coin_to_pacman = min(coins, key=lambda coin: manhattanDistance(pacmanPosition, coin))
+        closest_coin_to_pacman = min(
+            coins, key=lambda coin: manhattanDistance(pacmanPosition, coin))
 
         # Compute the distance from the ghost to the closest coin to Pacman
-        ghost_to_coin_distance = manhattanDistance(ghostPosition, closest_coin_to_pacman)
+        ghost_to_coin_distance = manhattanDistance(
+            ghostPosition, closest_coin_to_pacman)
 
         return ghost_to_coin_distance
 
@@ -116,13 +130,15 @@ class AStarGhost(GhostAgent):
                     continue
 
                 dx, dy = Actions.directionToVector(action)
-                next_x, next_y = int(currentState[0] + dx), int(currentState[1] + dy)
+                next_x, next_y = int(
+                    currentState[0] + dx), int(currentState[1] + dy)
                 nextState = (next_x, next_y)
 
                 if nextState not in visited and not state.hasWall(next_x, next_y):
                     newActions = actions + [action]
                     g_cost = len(newActions)
-                    h_cost = self.ghostHeuristic(nextState, state.getPacmanPosition(), state.getFood().asList())
+                    h_cost = self.ghostHeuristic(
+                        nextState, state.getPacmanPosition(), state.getFood().asList())
                     f_cost = g_cost + h_cost
                     open_list.push((nextState, newActions), f_cost)
 
@@ -148,13 +164,17 @@ class AStarGhost(GhostAgent):
             if not actions:
                 return util.Counter()
 
-            actionVectors = [Actions.directionToVector(a, speed) for a in actions]
-            newPositions = [(ghostPosition[0] + a[0], ghostPosition[1] + a[1]) for a in actionVectors]
-            distancesToPacman = [manhattanDistance(pos, pacmanPosition) for pos in newPositions]
+            actionVectors = [Actions.directionToVector(
+                a, speed) for a in actions]
+            newPositions = [(ghostPosition[0] + a[0], ghostPosition[1] + a[1])
+                            for a in actionVectors]
+            distancesToPacman = [manhattanDistance(
+                pos, pacmanPosition) for pos in newPositions]
 
             # Select action that maximizes distance from Pacman
             bestDistance = max(distancesToPacman)
-            bestActions = [a for a, dist in zip(actions, distancesToPacman) if dist == bestDistance]
+            bestActions = [a for a, dist in zip(
+                actions, distancesToPacman) if dist == bestDistance]
 
             dist = util.Counter()
             for a in bestActions:
@@ -165,16 +185,19 @@ class AStarGhost(GhostAgent):
             if not coins:
                 return util.Counter()
 
-            closest_coin_to_pacman = min(coins, key=lambda coin: manhattanDistance(pacmanPosition, coin))
+            closest_coin_to_pacman = min(
+                coins, key=lambda coin: manhattanDistance(pacmanPosition, coin))
 
             # Use A* search to find the optimal path to this coin
-            actions = self.aStarSearch(ghostPosition, closest_coin_to_pacman, state)
+            actions = self.aStarSearch(
+                ghostPosition, closest_coin_to_pacman, state)
 
             dist = util.Counter()
             if len(actions) > 0:
                 dist[actions[0]] = 1.0
             else:
-                legalActions = [a for a in state.getLegalActions(self.index) if a != Directions.STOP]
+                legalActions = [a for a in state.getLegalActions(
+                    self.index) if a != Directions.STOP]
                 if legalActions:
                     dist[random.choice(legalActions)] = 1.0
 
@@ -226,7 +249,8 @@ class MinMaxGhost(GhostAgent):
 
         for action in legalActions:
             successorState = state.generateSuccessor(0, action)
-            v = max(v, self.minmax(successorState, depth, 1))  # Proceed to Ghost's turn
+            # Proceed to Ghost's turn
+            v = max(v, self.minmax(successorState, depth, 1))
 
         return v
 
@@ -240,7 +264,8 @@ class MinMaxGhost(GhostAgent):
         legalActions = state.getLegalActions(agentIndex)
 
         nextAgent = (agentIndex + 1) % state.getNumAgents()
-        nextDepth = depth - 1 if nextAgent == 0 else depth  # Reduce depth only when all agents have moved
+        # Reduce depth only when all agents have moved
+        nextDepth = depth - 1 if nextAgent == 0 else depth
 
         for action in legalActions:
             successorState = state.generateSuccessor(agentIndex, action)
@@ -258,7 +283,8 @@ class MinMaxGhost(GhostAgent):
 
         for action in legalActions:
             successorState = state.generateSuccessor(self.index, action)
-            value = self.minmax(successorState, self.depth, (self.index + 1) % state.getNumAgents())
+            value = self.minmax(successorState, self.depth,
+                                (self.index + 1) % state.getNumAgents())
 
             if value < bestValue:
                 bestValue = value
