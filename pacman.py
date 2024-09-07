@@ -731,7 +731,8 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         wins = [game.state.isWin() for game in games]
         loses = [game.state.isLose() for game in games]
         winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
-        loseRate = loses.count(True) / float(len(loses)) if len(loses) > 0 else 0
+        loseRate = loses.count(True) / float(len(loses)
+                                             ) if len(loses) > 0 else 0
         print('Average Score:', sum(scores) / float(len(scores)))
         print('Scores:       ', ', '.join([str(score) for score in scores]))
         print('Win Rate:      %d/%d (%.2f)' %
@@ -740,18 +741,22 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
               (loses.count(True), len(loses), loseRate))
         print('Record:       ', ', '.join(
             [['Loss', 'Win'][int(w)] for w in wins]))
-        Avg_ghost_score(scores)
+        avg_ghost_score(scores)
 
     return games
 
-def Avg_ghost_score(scores):
+
+def avg_ghost_score(scores):
     interval = 100
-    avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval])) for i in range(0, len(scores), interval)]
+    avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval]))
+                  for i in range(0, len(scores), interval)]
     plt.plot(range(0, len(scores), interval), avg_scores)
     plt.xlabel('Episodes')
     plt.ylabel('Average Score')
     plt.title(f'Average Score over Time (per {interval} episodes)')
     plt.show()
+
+
 if __name__ == '__main__':
     """
     The main function called when pacman.py is run

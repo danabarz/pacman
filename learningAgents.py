@@ -15,19 +15,19 @@ import time
 
 class ValueEstimationAgent(Agent):
     """
-      Abstract agent which assigns values to (state,action)
-      Q-Values for an environment. As well as a value to a
-      state and a policy given respectively by,
+    Abstract agent which assigns values to (state,action)
+    Q-Values for an environment. As well as a value to a
+    state and a policy given respectively by,
 
-      V(s) = max_{a in actions} Q(s,a)
-      policy(s) = arg_max_{a in actions} Q(s,a)
+    V(s) = max_{a in actions} Q(s,a)
+    policy(s) = arg_max_{a in actions} Q(s,a)
 
-      Both ValueIterationAgent and QLearningAgent inherit
-      from this agent. While a ValueIterationAgent has
-      a model of the environment via a MarkovDecisionProcess
-      (see mdp.py) that is used to estimate Q-Values before
-      ever actually acting, the QLearningAgent estimates
-      Q-Values while acting in the environment.
+    Both ValueIterationAgent and QLearningAgent inherit
+    from this agent. While a ValueIterationAgent has
+    a model of the environment via a MarkovDecisionProcess
+    (see mdp.py) that is used to estimate Q-Values before
+    ever actually acting, the QLearningAgent estimates
+    Q-Values while acting in the environment.
     """
 
     def __init__(self, alpha=0.1, epsilon=0.1, gamma=0.9, numTraining=10):
@@ -84,26 +84,25 @@ class ValueEstimationAgent(Agent):
 
 class ReinforcementAgent(ValueEstimationAgent):
     """
-      Abstract Reinforcemnt Agent: A ValueEstimationAgent
-            which estimates Q-Values (as well as policies) from experience
-            rather than a model
+    Abstract Reinforcemnt Agent: A ValueEstimationAgent which estimates Q-Values (as well as policies) from 
+    experience rather than a model
 
-        What you need to know:
-                    - The environment will call
-                      observeTransition(state,action,nextState,deltaReward),
-                      which will call update(state, action, nextState, deltaReward)
-                      which you should override.
-        - Use self.getLegalActions(state) to know which actions
-                      are available in a state
+    What you need to know:
+    - The environment will call
+        observeTransition(state,action,nextState,deltaReward),
+        which will call update(state, action, nextState, deltaReward)
+        which you should override.
+    - Use self.getLegalActions(state) to know which actions
+        are available in a state
     """
     ####################################
     #    Override These Functions      #
     ####################################
 
-    def update(self, state, action, nextState, reward):
+    def update(self, state, action, nextState, reward, done):
         """
-                This class will call this function, which you write, after
-                observing a transition and reward
+        This class will call this function, which you write, after
+        observing a transition and reward
         """
         util.raiseNotDefined()
 
@@ -113,26 +112,28 @@ class ReinforcementAgent(ValueEstimationAgent):
 
     def getLegalActions(self, state):
         """
-          Get the actions available for a given
-          state. This is what you should use to
-          obtain legal actions for a state
+        Get the actions available for a given
+        state. This is what you should use to
+        obtain legal actions for a state
         """
         return self.actionFn(state)
 
     def observeTransition(self, state, action, nextState, deltaReward):
         """
-            Called by environment to inform agent that a transition has
-            been observed. This will result in a call to self.update
-            on the same arguments
-
-            NOTE: Do *not* override or call this function
+        Called by environment to inform agent that a transition has
+        been observed. This will result in a call to self.update
+        on the same arguments
+        NOTE: Do *not* override or call this function
         """
         self.episodeRewards += deltaReward
-        self.update(state, action, nextState, deltaReward)
+        if self.episodesSoFar == self.numTraining:
+            self.update(state, action, nextState, deltaReward, done=True)
+        else:
+            self.update(state, action, nextState, deltaReward, done=False)
 
     def startEpisode(self):
         """
-          Called by environment when new episode is starting
+        Called by environment when new episode is starting
         """
         self.lastState = None
         self.lastAction = None
@@ -140,7 +141,7 @@ class ReinforcementAgent(ValueEstimationAgent):
 
     def stopEpisode(self):
         """
-          Called by environment when episode is done
+        Called by environment when episode is done
         """
         if self.episodesSoFar < self.numTraining:
             self.accumTrainRewards += self.episodeRewards
@@ -192,8 +193,8 @@ class ReinforcementAgent(ValueEstimationAgent):
 
     def doAction(self, state, action):
         """
-            Called by inherited class when
-            an action is taken in a state
+        Called by inherited class when
+        an action is taken in a state
         """
         self.lastState = state
         self.lastAction = action
@@ -203,8 +204,8 @@ class ReinforcementAgent(ValueEstimationAgent):
     ###################
     def observationFunction(self, state):
         """
-            This is where we ended up after our last action.
-            The simulation should somehow ensure this is called
+        This is where we ended up after our last action.
+        The simulation should somehow ensure this is called
         """
         if not self.lastState is None:
             reward = state.getScore(isGhost=True) - \
@@ -220,7 +221,7 @@ class ReinforcementAgent(ValueEstimationAgent):
 
     def final(self, state):
         """
-          Called by Pacman game at the terminal state
+        Called by Pacman game at the terminal state
         """
         deltaReward = state.getScore(
             isGhost=True) - self.lastState.getScore(isGhost=True)
