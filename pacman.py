@@ -36,7 +36,7 @@ The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 import os
 import random
 import sys
-
+import matplotlib.pyplot as plt
 import layout
 from game import Actions
 from game import Directions
@@ -726,20 +726,32 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                 components = {'layout': layout, 'actions': game.moveHistory}
                 cPickle.dump(components, f)
 
-    if (numGames - numTraining) > 0:
+    if (numGames - numTraining) >= 0:
         scores = [game.state.getScore(isGhost=True) for game in games]
         wins = [game.state.isWin() for game in games]
-        winRate = wins.count(True) / float(len(wins))
+        loses = [game.state.isLose() for game in games]
+        winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
+        loseRate = loses.count(True) / float(len(loses)) if len(loses) > 0 else 0
         print('Average Score:', sum(scores) / float(len(scores)))
         print('Scores:       ', ', '.join([str(score) for score in scores]))
         print('Win Rate:      %d/%d (%.2f)' %
               (wins.count(True), len(wins), winRate))
+        print('Lose Rate:      %d/%d (%.2f)' %
+              (loses.count(True), len(loses), loseRate))
         print('Record:       ', ', '.join(
             [['Loss', 'Win'][int(w)] for w in wins]))
+        Avg_ghost_score(scores)
 
     return games
 
-
+def Avg_ghost_score(scores):
+    interval = 100
+    avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval])) for i in range(0, len(scores), interval)]
+    plt.plot(range(0, len(scores), interval), avg_scores)
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Score')
+    plt.title(f'Average Score over Time (per {interval} episodes)')
+    plt.show()
 if __name__ == '__main__':
     """
     The main function called when pacman.py is run
