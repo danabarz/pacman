@@ -382,10 +382,6 @@ class Actions:
 
 
 class GameStateData:
-    """
-
-    """
-
     def __init__(self, prevState=None):
         """
         Generates a new data packet by copying information from its predecessor.
@@ -397,12 +393,14 @@ class GameStateData:
             self.layout = prevState.layout
             self._eaten = prevState._eaten
             self.score = prevState.score
+            self.ghost_score = prevState.ghost_score
         self._foodEaten = None
         self._capsuleEaten = None
         self._agentMoved = None
         self._lose = False
         self._win = False
         self.scoreChange = 0
+        self.ghostScoreChange = 0
 
     def deepCopy(self):
         state = GameStateData(self)
@@ -510,6 +508,8 @@ class GameStateData:
         self.capsules = layout.capsules[:]
         self.layout = layout
         self.score = 0
+        self.ghost_score = 0
+        self.ghostScoreChange = 0
         self.scoreChange = 0
 
         self.agentStates = []

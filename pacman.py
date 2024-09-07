@@ -113,6 +113,7 @@ class GameState:
         # Book keeping
         state.data._agentMoved = agentIndex
         state.data.score += state.data.scoreChange
+        state.data.ghost_score += state.data.ghostScoreChange
         # print(state.data.score)
         return state
 
@@ -157,7 +158,7 @@ class GameState:
         return len(self.data.agentStates)
 
     def getScore(self, isGhost=False):
-        return -self.data.score if isGhost else self.data.score
+        return self.data.ghost_score if isGhost else self.data.score
 
     def getCapsules(self):
         """
@@ -372,6 +373,7 @@ class PacmanRules:
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
+                state.data.ghostScoreChange -= 500
                 state.data.scoreChange += 500
                 state.data._win = True
         # Eat capsule
@@ -466,6 +468,7 @@ class GhostRules:
         else:
             if not state.data._win:
                 state.data.scoreChange -= 500
+                state.data.ghostScoreChange += 500
                 state.data._lose = True
 
     collide = staticmethod(collide)
@@ -724,7 +727,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                 cPickle.dump(components, f)
 
     if (numGames - numTraining) > 0:
-        scores = [game.state.getScore() for game in games]
+        scores = [game.state.getScore(isGhost=True) for game in games]
         wins = [game.state.isWin() for game in games]
         winRate = wins.count(True) / float(len(wins))
         print('Average Score:', sum(scores) / float(len(scores)))

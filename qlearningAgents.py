@@ -151,12 +151,6 @@ class QLearningAgent(ReinforcementAgent):
         Q(s, a) = (1 - alpha) * Q(s, a) + alpha * (reward + discount * max_{a'} Q(s', a'))
         where s' is the next state, a' is the next action, and alpha is the learning rate.
         """
-        # disc = self.discount
-        # alpha = self.alpha
-        # qvalue = self.getQValue(state, action)
-        # next_value = self.getValue(nextState)
-        # new_value = (1 - alpha) * qvalue + alpha * (reward + disc * next_value)
-        # self.setQValue(state, action, new_value)
         disc = self.discount
         alpha = self.alpha
 
@@ -285,8 +279,8 @@ class GhostQAgent(QLearningAgent):
         return action
 
     def update(self, state, action, nextState, reward):
-        # pacman_pos = state.getPacmanPosition()
-        # ghost_pos = state.getGhostPosition(self.index)
+        # pacman_pos = nextState.getPacmanPosition()
+        # ghost_pos = nextState.getGhostPosition(self.index)
         # distance = util.manhattanDistance(pacman_pos, ghost_pos)
         # reward -= distance
         ghost_pos = nextState.getGhostPosition(self.index)
@@ -295,11 +289,6 @@ class GhostQAgent(QLearningAgent):
         new_distance = util.manhattanDistance(
             nextState.getPacmanPosition(), ghost_pos)
         reward = reward + new_distance if new_distance < old_distance else reward - new_distance
-        # reward -= abs(new_distance-old_distance)
-        # reward -= new_distance
-
-        # if new_distance < old_distance and nextState.getGhostState(self.index).scaredTimer > 0:
-        #     reward -= new_distance
 
         QLearningAgent.update(self, state, action, nextState, reward)
 
