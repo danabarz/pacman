@@ -33,25 +33,78 @@ class LeftTurnAgent(game.Agent):
         return Directions.STOP
 
 
+# class GreedyAgent(Agent):
+#     def __init__(self, evalFn="scoreEvaluation"):
+#         self.evaluationFunction = util.lookup(evalFn, globals())
+#         assert self.evaluationFunction != None
+
+#     def getAction(self, state):
+#         # Generate candidate actions
+#         legal = state.getLegalPacmanActions()
+#         if Directions.STOP in legal:
+#             legal.remove(Directions.STOP)
+
+#         successors = [(state.generateSuccessor(0, action), action)
+#                       for action in legal]
+#         scored = [(self.evaluationFunction(state), action)
+#                   for state, action in successors]
+#         bestScore = max(scored)[0]
+#         bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+#         return random.choice(bestActions)
+
 class GreedyAgent(Agent):
-    def __init__(self, evalFn="scoreEvaluation"):
-        self.evaluationFunction = util.lookup(evalFn, globals())
-        assert self.evaluationFunction != None
+    def __init__(self):
+        # This will store the previous position to detect loops
+        self.lastPosition = None
 
     def getAction(self, state):
-        # Generate candidate actions
+        # Get legal actions for Pacman
         legal = state.getLegalPacmanActions()
+        
+        # Remove STOP action to avoid staying in place
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
+        
+        # Get Pacman's current position and food grid
+        pacmanPosition = state.getPacmanPosition()
+        food = state.getFood().asList()  # List of food positions (pellets)
+        
+        # If no food is left, just return STOP
+        if len(food) == 0:
+            return Directions.STOP
+        
+        # Find the nearest pellet using Manhattan distance
+        nearestPellet = min(food, key=lambda pellet: util.manhattanDistance(pacmanPosition, pellet))
+        
+        # Evaluate possible actions to find the best one
+        bestAction = None
+        bestDistance = float('inf')
+        
+        for action in legal:
+            # Generate successor state after taking the action
+            successor = state.generatePacmanSuccessor(action)
+            if successor is None:
+                continue  # Skip illegal actions
 
-        successors = [(state.generateSuccessor(0, action), action)
-                      for action in legal]
-        scored = [(self.evaluationFunction(state), action)
-                  for state, action in successors]
-        bestScore = max(scored)[0]
-        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
-        return random.choice(bestActions)
+            newPosition = successor.getPacmanPosition()
 
+            # Calculate the distance to the nearest pellet from the new position
+            distance = util.manhattanDistance(newPosition, nearestPellet)
+
+            # Check if the new position is different from the last position to avoid loops
+            if newPosition != self.lastPosition and distance < bestDistance:
+                bestDistance = distance
+                bestAction = action
+
+        # Update the last position
+        self.lastPosition = state.getPacmanPosition()
+
+        # Return the best action (or a random one if none is found)
+        if bestAction:
+            return bestAction
+        else:
+            return random.choice(legal)
+    
 
 def scoreEvaluation(state):
     return state.getScore()
