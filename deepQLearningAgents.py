@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+from learningAgents import ReinforcementAgent
 import util
 import numpy as np
 from collections import deque
@@ -49,17 +50,18 @@ class ReplayBuffer:
 
 
 # Deep Q-Learning Agent Class
-class GhostDQLAgent(Agent):
-    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=64, lr=0.001, numTraining=0):
+class GhostDQLAgent(ReinforcementAgent):
+    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=64, lr=0.001, numTraining=0, **args):
+        args['epsilon'] = epsilon
+        args['gamma'] = gamma
+        args['alpha'] = alpha
+        args['numTraining'] = numTraining
+        ReinforcementAgent.__init__(self, **args)
         self.index = index 
         self.state_size = FEATURE_SIZE
         self.action_size = ACTION_NUMBER
-        self.epsilon = epsilon  # Exploration rate
-        self.gamma = gamma  # Discount factor
-        self.alpha = alpha  # Learning rate
         self.lr = lr
         self.batch_size = batch_size
-        self.numTraining = numTraining
         self.memory = ReplayBuffer(buffer_size)
         self.qnetwork_local = DQNetwork(self.state_size, self.action_size)
         self.qnetwork_target = DQNetwork(self.state_size, self.action_size)
@@ -112,31 +114,6 @@ class GhostDQLAgent(Agent):
         features = [pacman_pos[0], pacman_pos[1], ghost_pos[0], ghost_pos[1], scared_timer]
         return features
 
-    # def extract_state_features(self, state):
-    #     """8 features"""
-    #     pacman_pos = state.getPacmanPosition()
-    #     ghost_pos = state.getGhostPosition(self.index)
-        
-    #     # # Pacman's direction
-    #     # pacman_direction = ACTION_MAP.get(state.getPacmanState().getDirection(), None)
-        
-    #     # # Ghost's scared timer
-    #     # scared_timer = state.getGhostState(self.index).scaredTimer
-        
-    #     # Distance to the nearest food
-    #     food_positions = state.getFood().asList()
-    #     nearest_food_distance = min([util.manhattanDistance(pacman_pos, food) for food in food_positions])
-        
-    #     # Number of legal moves for Pacman
-    #     pacman_legal_moves = len(state.getLegalPacmanActions())
-        
-    #     # Compile all features into a list
-    #     # features = [pacman_pos[0], pacman_pos[1], ghost_pos[0], ghost_pos[1], pacman_direction, scared_timer, nearest_food_distance, pacman_legal_moves]
-    #     features = [pacman_pos[0], pacman_pos[1], ghost_pos[0], ghost_pos[1], nearest_food_distance, pacman_legal_moves]
-
-        
-    #     return features
-
     def update(self, state, action, reward, next_state, done):
         """Store experience and perform learning"""
         # next_pacman_pos = next_state.getPacmanPosition()
@@ -155,63 +132,6 @@ class GhostDQLAgent(Agent):
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample(self.batch_size)
             self.learn(experiences)
-
-    # def update(self, state, action, reward, next_state, done):
-    #     """Store experience and perform learning"""
-    #     # Get new positions from the next state
-    #     next_pacman_pos = next_state.getPacmanPosition()
-    #     next_ghost_pos = next_state.getGhostPosition(self.index)
-        
-    #     # Calculate distances between the ghost and Pacman
-    #     distance = util.manhattanDistance(next_pacman_pos, next_ghost_pos)
-
-    #     # if next_pacman_pos in state.data.food:
-    #     #     state.data.scoreChange -= 10
-        
-    #     # Reward for trapping Pacman (e.g., if the ghost is very close to Pacman)
-    #     if distance == 1:
-    #         reward += 10  # High reward for being close to Pacman
-        
-    #     # Encourage the ghost to block Pacman in tight spaces
-    #     if self.is_trapping_pacman(next_state):
-    #         reward += 15  # Reward for positioning the ghost strategically
-        
-    #     # Penalize the ghost for just following Pacman without success
-    #     reward -= distance
-        
-    #     # Store the experience in the memory buffer
-    #     self.memory.add((self.extract_state_features(state), action, reward, self.extract_state_features(next_state), done))
-
-    #     # Perform learning only if the replay buffer has enough samples
-    #     if len(self.memory) > self.batch_size:
-    #         experiences = self.memory.sample(self.batch_size)
-    #         self.learn(experiences)
-
-    # update for multi agents
-    # def update(self, state, action, reward, next_state, done):
-        # """
-        # Modify the update function so that the reward reflects the collective performance of the ghosts.
-        # """
-        # # Get collective information from the state (e.g., distance to Pacman for all ghosts)
-        # pacman_pos = next_state.getPacmanPosition()
-        
-        # # Calculate the distance of each ghost to Pacman and sum them
-        # ghost_positions = next_state.getGhostPositions()  # This gets positions for all ghosts
-        # total_distance = sum([util.manhattanDistance(pacman_pos, ghost_pos) for ghost_pos in ghost_positions])
-
-        # # Reward all ghosts when Pacman is caught
-        # if total_distance == 0:
-        #     reward += 100  # Pacman is caught, reward all ghosts
-
-        # # Penalize for large distances to Pacman
-        # reward -= total_distance
-
-        # # Store experience and update the Q-network as before
-        # self.memory.add((self.extract_state_features(state), action, reward, self.extract_state_features(next_state), done))
-
-        # if len(self.memory) > self.batch_size:
-        #     experiences = self.memory.sample(self.batch_size)
-        #     self.learn(experiences)
 
     def is_trapping_pacman(self, next_state):
         """
@@ -234,7 +154,7 @@ class GhostDQLAgent(Agent):
         # Get max predicted Q values for next states from target model
         next_q_values = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
         # Compute target Q values
-        target_q_values = rewards + (self.gamma * next_q_values * (1 - dones))
+        target_q_values = rewards + (self.discount * next_q_values * (1 - dones))
 
         # Get expected Q values from local model
         expected_q_values = self.qnetwork_local(states).gather(1, actions)
@@ -255,16 +175,5 @@ class GhostDQLAgent(Agent):
 
     def final(self, state):
         """This method can be used to save the model or perform any final steps after training"""
-        # print("Training finished. Saving model...")
+        print("Training finished. Saving model...")
         torch.save(self.qnetwork_local.state_dict(), f"dqn_model_ghost_{self.index}.pth")
-
-    # def observeTransition(self, state, action, nextState, reward):
-    #     """
-    #     Called by environment to inform agent that a transition has
-    #     been observed. This will result in a call to self.update
-    #     on the same arguments
-    #     """
-    #     self.episodeRewards += reward
-    #     self.update(state, action, nextState, reward)
-    def observationFunction(self,state):
-        print("in obs")
