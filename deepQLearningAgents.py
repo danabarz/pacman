@@ -22,9 +22,9 @@ ACTION_MAP = {
 class DQNetwork(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, action_size)
+        self.fc1 = nn.Linear(state_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, action_size)
 
     def forward(self, state):
         x = torch.relu(self.fc1(state))
@@ -51,8 +51,9 @@ class ReplayBuffer:
 
 
 # Deep Q-Learning Agent Class
-class GhostDQLAgent(ReinforcementAgent):
-    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=64, lr=0.001, numTraining=0, **args):
+class GhostDQAgent(ReinforcementAgent):
+    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=128, lr=0.001, numTraining=0, **args):
+        self.timestep = 0
         args['epsilon'] = epsilon
         args['gamma'] = gamma
         args['alpha'] = alpha
@@ -73,11 +74,8 @@ class GhostDQLAgent(ReinforcementAgent):
     def getAction(self, state):
         """Choose action based on epsilon-greedy strategy"""
         legal_actions = state.getLegalActions(self.index)
-        if not legal_actions:
-            return None
 
-        # Exploration: take a random action with probability epsilon
-        if random.random() < self.epsilon:
+        if util.flipCoin(self.epsilon):
             return random.choice(legal_actions)
 
         # Exploitation: predict Q-values and select the best legal action
@@ -99,6 +97,7 @@ class GhostDQLAgent(ReinforcementAgent):
                 max_q_value = q_values[action_index]
                 best_legal_action = action
 
+        self.doAction(state, best_legal_action)
         return best_legal_action
 
     def action_to_index(self, action):
@@ -119,7 +118,7 @@ class GhostDQLAgent(ReinforcementAgent):
                     ghost_pos[0], ghost_pos[1], scared_timer]
         return features
 
-    def update(self, state, action, reward, next_state, done):
+    def update(self, state, action, next_state, reward, done):
         """Store experience and perform learning"""
         # next_pacman_pos = next_state.getPacmanPosition()
         # next_ghost_pos = next_state.getGhostPosition(self.index)
@@ -133,9 +132,9 @@ class GhostDQLAgent(ReinforcementAgent):
             reward += 1
 
         self.memory.add((self.extract_state_features(
-            state), action, reward, self.extract_state_features(next_state), done))
+            state), self.action_to_index(action), reward, self.extract_state_features(next_state), done))
 
-        if len(self.memory) > self.batch_size:
+        if len(self.memory) > self.batch_size and self.timestep % 4 == 0:
             experiences = self.memory.sample(self.batch_size)
             self.learn(experiences)
 
@@ -174,8 +173,11 @@ class GhostDQLAgent(ReinforcementAgent):
         loss.backward()
         self.optimizer.step()
 
-        # Soft update of target network
-        self.soft_update(self.qnetwork_local, self.qnetwork_target)
+        # Hard update of target network
+        self.timestep += 1
+        if self.timestep % 100 == 0:
+            self.qnetwork_target.load_state_dict(
+                self.qnetwork_local.state_dict())
 
     def soft_update(self, local_model, target_model):
         """Soft update model parameters"""
@@ -185,6 +187,8 @@ class GhostDQLAgent(ReinforcementAgent):
 
     def final(self, state):
         """This method can be used to save the model or perform any final steps after training"""
-        print("Training finished. Saving model...")
-        torch.save(self.qnetwork_local.state_dict(),
-                   f"dqn_model_ghost_{self.index}.pth")
+        ReinforcementAgent.final(self, state)
+        if self.episodesSoFar % 100 == 0:
+            print("Training finished. Saving model...")
+            torch.save(self.qnetwork_local.state_dict(),
+                       f"dqn_model_ghost_{self.index}.pth")

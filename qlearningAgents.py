@@ -145,7 +145,7 @@ class QLearningAgent(ReinforcementAgent):
 
         return action
 
-    def update(self, state, action, nextState, reward):
+    def update(self, state, action, nextState, reward, done=False):
         """
         Update the Q-value for the state-action pair using the Bellman equation:
         Q(s, a) = (1 - alpha) * Q(s, a) + alpha * (reward + discount * max_{a'} Q(s', a'))
@@ -232,7 +232,7 @@ class ApproximateQAgent(PacmanQAgent):
             result += self.weights[feature] * features[feature]
         return result
 
-    def update(self, state, action, nextState, reward):
+    def update(self, state, action, nextState, reward, done=False):
         """
         Should update your weights based on transition
         """
@@ -278,7 +278,7 @@ class GhostQAgent(QLearningAgent):
         self.doAction(state, action)
         return action
 
-    def update(self, state, action, nextState, reward):
+    def update(self, state, action, nextState, reward, done=False):
         # pacman_pos = nextState.getPacmanPosition()
         # ghost_pos = nextState.getGhostPosition(self.index)
         # distance = util.manhattanDistance(pacman_pos, ghost_pos)
