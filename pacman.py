@@ -751,9 +751,11 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
               f'{sum(pacman_scores) / float(len(pacman_scores))}')
         print(f'Win Rate: {wins.count(True)}/{len(wins)} ({winRate})')
         print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
-        print(f'Food eaten average: {sum(foodCount) / len(foodCount)}')
+        print(f'Food eaten average: {
+              sum(foodCount) / float(len(pacman_scores))}')
         print(f'Average time: {total_time / numGames:.3f}')
-        print(f'Average steps to catch Pacman: {sum(steps) / len(steps):.3f}')
+        print(f'Average steps to catch Pacman: {
+              sum(steps) / float(len(pacman_scores)):.3f}')
         avg_ghost_score(ghost_scores)
         avg_steps_graph(steps)
 
