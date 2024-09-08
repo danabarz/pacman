@@ -692,12 +692,14 @@ def replayGame(layout, actions, display):
 
 def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30):
     import __main__
+    import time
     __main__.__dict__['_display'] = display
 
     # Ensure ClassicGameRules is imported
 
     rules = ClassicGameRules(timeout)
     games = []
+    total_time = 0
 
     for i in range(numGames):
         beQuiet = i < numTraining
@@ -713,9 +715,14 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         # Initialize the game
         game = rules.newGame(layout, pacman, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
+
+        game_time = time.time()
         game.run()
+        end_time = time.time()
+
         if not beQuiet:
             games.append(game)
+            total_time += end_time - game_time
 
         if record:
             import time
@@ -727,21 +734,25 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                 cPickle.dump(components, f)
 
     if (numGames - numTraining) >= 0:
-        scores = [game.state.getScore(isGhost=True) for game in games]
+        ghost_scores = [game.state.getScore(isGhost=True) for game in games]
+        pacman_scores = [game.state.getScore() for game in games]
+        foodCount = [game.state.getNumFood() for game in games]
         wins = [game.state.isWin() for game in games]
         loses = [game.state.isLose() for game in games]
         winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
         loseRate = loses.count(True) / float(len(loses)
                                              ) if len(loses) > 0 else 0
-        print('Scores:       ', ', '.join([str(score) for score in scores]))
-        print('Record:       ', ', '.join(
-            [['Loss', 'Win'][int(w)] for w in wins]))
-        print('Average Score:', sum(scores) / float(len(scores)))
-        print('Win Rate:      %d/%d (%.2f)' %
-              (wins.count(True), len(wins), winRate))
-        print('Lose Rate:      %d/%d (%.2f)' %
-              (loses.count(True), len(loses), loseRate))
-        avg_ghost_score(scores)
+        # print('Scores: ', ', '.join([str(score) for score in scores]))
+        # print('Record: ', ', '.join([['Loss', 'Win'][int(w)] for w in wins]))
+        print(f'Average Score (ghost): '
+              f'{sum(ghost_scores) / float(len(ghost_scores))}')
+        print(f'Average Score (pacman): '
+              f'{sum(pacman_scores) / float(len(pacman_scores))}')
+        print(f'Win Rate: {wins.count(True)}/{len(wins)} ({winRate})')
+        print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
+        print(f'Food eaten: {sum(foodCount) / len(foodCount)}')
+        print(f'Average time: {total_time / numGames}')
+        avg_ghost_score(ghost_scores)
 
     return games
 
