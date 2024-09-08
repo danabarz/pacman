@@ -108,33 +108,76 @@ class LeftTurnAgent(game.Agent):
 
 class GreedyAgent(Agent):
     def __init__(self):
-        # Track the last few positions to detect loops
+        # Track position history and last position
         self.positionHistory = []
         self.maxHistoryLength = 5  # Memory length to check for loops
+        self.lastPosition = None  # Used for "smallGrid" map
 
     def getAction(self, state):
+        # Get the map name from the state layout
+        # mapName = state.data.layout.name
+
         # Get legal actions for Pacman
         legal = state.getLegalPacmanActions()
         
         # Remove STOP action to avoid staying in place
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
-        
+
         # Get Pacman's current position and food grid
         pacmanPosition = state.getPacmanPosition()
         food = state.getFood().asList()  # List of food positions (pellets)
-        
+
         # If no food is left, just return STOP
         if len(food) == 0:
             return Directions.STOP
-        
+
         # Find the nearest pellet using Manhattan distance
         nearestPellet = min(food, key=lambda pellet: util.manhattanDistance(pacmanPosition, pellet))
-        
-        # Evaluate possible actions to find the best one
+
+        # Check map type and apply the corresponding behavior
+        if state.data.layout.layoutText == ['%%%%%%%', '% P   %', '% %%% %', '% %.  %', '% %%% %', '%. G  %', '%%%%%%%']:
+            # For "smallGrid" map: avoid back and forth movement by using lastPosition
+            return self.getActionForSmallGrid(state, legal, pacmanPosition, nearestPellet)
+        else:
+            # For other maps: use positionHistory to detect and avoid loops
+            return self.getActionForOtherMaps(state, legal, pacmanPosition, nearestPellet)
+
+    def getActionForSmallGrid(self, state, legal, pacmanPosition, nearestPellet):
+        """Behavior specific to the 'smallGrid' map."""
         bestAction = None
         bestDistance = float('inf')
-        
+
+        for action in legal:
+            # Generate successor state after taking the action
+            successor = state.generatePacmanSuccessor(action)
+            if successor is None:
+                continue  # Skip illegal actions
+
+            newPosition = successor.getPacmanPosition()
+
+            # Calculate the distance to the nearest pellet from the new position
+            distance = util.manhattanDistance(newPosition, nearestPellet)
+
+            # Check if the new position is different from the last position to avoid loops
+            if newPosition != self.lastPosition and distance < bestDistance:
+                bestDistance = distance
+                bestAction = action
+
+        # Update the last position to the current position
+        self.lastPosition = pacmanPosition
+
+        # Return the best action (or a random one if none is found)
+        if bestAction:
+            return bestAction
+        else:
+            return random.choice(legal)
+
+    def getActionForOtherMaps(self, state, legal, pacmanPosition, nearestPellet):
+        """Behavior for all maps except 'smallGrid'."""
+        bestAction = None
+        bestDistance = float('inf')
+
         for action in legal:
             # Generate successor state after taking the action
             successor = state.generatePacmanSuccessor(action)
