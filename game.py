@@ -543,12 +543,16 @@ class Game:
         self.totalAgentTimes = [0 for agent in agents]
         self.totalAgentTimeWarnings = [0 for agent in agents]
         self.agentTimeout = False
+        self.total_moves = 0
 
     def getProgress(self):
         if self.gameOver:
             return 1.0
         else:
             return self.rules.getProgress(self)
+
+    def getNumOfSteps(self):
+        return self.total_moves
 
     def _agentCrash(self, agentIndex, quiet=False):
         "Helper method for handling agent crashes"
@@ -729,6 +733,11 @@ class Game:
             # Track progress
             if agentIndex == numAgents + 1:
                 self.numMoves += 1
+
+            # count pacman steps
+            if agentIndex == 0:
+                self.total_moves += 1
+
             # Next agent
             agentIndex = (agentIndex + 1) % numAgents
 
@@ -749,4 +758,5 @@ class Game:
                     print("Exception", data)
                     self._agentCrash(agent.index)
                     return
+
         self.display.finish()

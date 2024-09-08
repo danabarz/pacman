@@ -737,6 +737,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         ghost_scores = [game.state.getScore(isGhost=True) for game in games]
         pacman_scores = [game.state.getScore() for game in games]
         foodCount = [game.state.getNumFood() for game in games]
+        steps = [game.getNumOfSteps() for game in games]
         wins = [game.state.isWin() for game in games]
         loses = [game.state.isLose() for game in games]
         winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
@@ -750,11 +751,21 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
               f'{sum(pacman_scores) / float(len(pacman_scores))}')
         print(f'Win Rate: {wins.count(True)}/{len(wins)} ({winRate})')
         print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
-        print(f'Food eaten: {sum(foodCount) / len(foodCount)}')
-        print(f'Average time: {total_time / numGames}')
+        print(f'Food eaten average: {sum(foodCount) / len(foodCount)}')
+        print(f'Average time: {total_time / numGames:.3f}')
+        print(f'Average steps to catch Pacman: {sum(steps) / len(steps):.3f}')
         avg_ghost_score(ghost_scores)
+        avg_steps_graph(steps)
 
     return games
+
+
+def avg_steps_graph(steps):
+    plt.plot(range(len(steps)), steps)
+    plt.xlabel('Episodes')
+    plt.ylabel('Steps to catch Pacman')
+    plt.title('Steps to catch Pacman over Time')
+    plt.show()
 
 
 def avg_ghost_score(scores):
@@ -766,6 +777,43 @@ def avg_ghost_score(scores):
     plt.ylabel('Average Score')
     plt.title(f'Average Score over Time (per {interval} episodes)')
     plt.show()
+
+
+"""
+Optional Graph:
+
+1. Food Left at Game End:
+plt.plot(range(len(foodCount)), foodCount)
+plt.xlabel('Episodes')
+plt.ylabel('Food Left')
+plt.title('Food Left at the End of Each Game')
+plt.show()
+
+2. Cumulative Win Rate Over Time:
+cumulative_win_rate = [sum(wins[:i+1]) / float(i+1) for i in range(len(wins))]
+plt.plot(range(len(cumulative_win_rate)), cumulative_win_rate)
+plt.xlabel('Episodes')
+plt.ylabel('Cumulative Win Rate')
+plt.title('Cumulative Win Rate Over Time')
+plt.show()
+
+3. Average Time to Complete a Game:
+time_per_game = [game.state.getTime() for game in games]
+plt.plot(range(len(time_per_game)), time_per_game)
+plt.xlabel('Episodes')
+plt.ylabel('Game Duration (steps)')
+plt.title('Game Duration Over Time')
+plt.show()
+
+4. Learning Progress of the Ghost (Q-Learning Specific):
+avg_q_values = [sum(q_values[i:i+interval]) / float(len(q_values[i:i+interval]))
+                for i in range(0, len(q_values), interval)]
+plt.plot(range(0, len(q_values), interval), avg_q_values)
+plt.xlabel('Episodes')
+plt.ylabel('Average Q-Value')
+plt.title(f'Average Q-Value over Time (per {interval} episodes)')
+plt.show()
+"""
 
 
 if __name__ == '__main__':
