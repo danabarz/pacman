@@ -6,7 +6,6 @@ from learningAgents import ReinforcementAgent
 import util
 import numpy as np
 from collections import deque
-from game import Agent
 
 ACTION_NUMBER = 4
 FEATURE_SIZE = 5
@@ -52,18 +51,17 @@ class ReplayBuffer:
 
 # Deep Q-Learning Agent Class
 class GhostDQAgent(ReinforcementAgent):
-    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=128, lr=0.001, numTraining=0, **args):
-        self.timestep = 0
-        args['epsilon'] = epsilon
-        args['gamma'] = gamma
-        args['alpha'] = alpha
-        args['numTraining'] = numTraining
-        ReinforcementAgent.__init__(self, **args)
+    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=128, lr=0.001, numTraining=0, features_num=FEATURE_SIZE, **args):
+        super().__init__(numTraining=numTraining,
+                         epsilon=epsilon, alpha=alpha, gamma=gamma, **args)
+
         self.index = index
-        self.state_size = FEATURE_SIZE
+        self.state_size = features_num
         self.action_size = ACTION_NUMBER
         self.lr = lr
         self.batch_size = batch_size
+        self.timestep = 0
+
         self.memory = ReplayBuffer(buffer_size)
         self.qnetwork_local = DQNetwork(self.state_size, self.action_size)
         self.qnetwork_target = DQNetwork(self.state_size, self.action_size)
@@ -178,12 +176,6 @@ class GhostDQAgent(ReinforcementAgent):
         if self.timestep % 100 == 0:
             self.qnetwork_target.load_state_dict(
                 self.qnetwork_local.state_dict())
-
-    def soft_update(self, local_model, target_model):
-        """Soft update model parameters"""
-        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(
-                self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
 
     def final(self, state):
         """This method can be used to save the model or perform any final steps after training"""
