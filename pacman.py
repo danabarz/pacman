@@ -107,8 +107,6 @@ class GameState:
 
         # Resolve multi-agent effects
         GhostRules.checkDeath(state, agentIndex)
-        # if agentIndex != 0:
-        #     GhostRules.check_dist(state, agentIndex)
 
         # Book keeping
         state.data._agentMoved = agentIndex
@@ -365,16 +363,18 @@ class PacmanRules:
     def consume(position, state):
         x, y = position
         # Eat food
+
         if state.data.food[x][y]:
             state.data.scoreChange += 10
+            # state.data.ghostScoreChange -= 10
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
-                state.data.ghostScoreChange -= 500
-                state.data.scoreChange += 500
+                state.data.ghostScoreChange -= 100
+                state.data.scoreChange += 100
                 state.data._win = True
         # Eat capsule
         if (position in state.getCapsules()):
@@ -451,13 +451,6 @@ class GhostRules:
 
     checkDeath = staticmethod(checkDeath)
 
-    # def check_dist(state, agentIndex):
-    #     import util
-    #     pacman_pos = state.getPacmanPosition()
-    #     ghost_pos = state.getGhostPosition(agentIndex)
-    #     distance = util.manhattanDistance(pacman_pos, ghost_pos)
-    #     state.data.scoreChange -= distance
-
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
             state.data.scoreChange += 200
@@ -467,12 +460,11 @@ class GhostRules:
             state.data._eaten[agentIndex] = True
         else:
             if not state.data._win:
-                state.data.scoreChange -= 500
-                state.data.ghostScoreChange += 500
+                state.data.scoreChange -= 100
+                state.data.ghostScoreChange += 100
                 state.data._lose = True
 
     collide = staticmethod(collide)
-    # check_dist = staticmethod(check_dist)
 
     def canKill(pacmanPosition, ghostPosition):
         return manhattanDistance(ghostPosition, pacmanPosition) <= COLLISION_TOLERANCE
@@ -600,8 +592,12 @@ def readCommand(argv):
         if 'numTraining' not in ghostOpts:
             ghostOpts['numTraining'] = options.numTraining
 
-    args['ghosts'] = [ghostType(i + 1, **ghostOpts)
-                      for i in range(options.numGhosts)]
+    if ghostType.__name__ == "CentralizedDQLAgent":
+        centralized_agent = ghostType(**ghostOpts)
+        args['ghosts'] = [centralized_agent] * options.numGhosts
+    else:
+        args['ghosts'] = [ghostType(i + 1, **ghostOpts)
+                          for i in range(options.numGhosts)]
 
     # Don't display training games
     if 'numTrain' in ghostOpts:
@@ -771,7 +767,7 @@ def avg_steps_graph(steps):
 
 
 def avg_ghost_score(scores):
-    interval = 100
+    interval = 1
     avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval]))
                   for i in range(0, len(scores), interval)]
     plt.plot(range(0, len(scores), interval), avg_scores)
