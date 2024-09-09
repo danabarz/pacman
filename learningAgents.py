@@ -6,11 +6,17 @@
 # John DeNero (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # For more info, see http://inst.eecs.berkeley.edu/~cs188/sp09/pacman.html
 
-from game import Directions, Agent, Actions
-
-import random
+from game import Agent
 import util
 import time
+
+
+ACTION_MAP = {
+    'North': 0,
+    'South': 1,
+    'East': 2,
+    'West': 3
+}
 
 
 class ValueEstimationAgent(Agent):
@@ -74,7 +80,7 @@ class ValueEstimationAgent(Agent):
         """
         util.raiseNotDefined()
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex):
         """
         state: can call state.getLegalActions()
         Choose an action and return it.
@@ -198,6 +204,14 @@ class ReinforcementAgent(ValueEstimationAgent):
         """
         self.lastState = state
         self.lastAction = action
+
+    def action_to_index(self, action):
+        """
+        Map actions to their corresponding index in the Q-value list.
+        Example: if you have 4 possible actions (NORTH, SOUTH, EAST, WEST),
+        map each one to an index.
+        """
+        return ACTION_MAP.get(action, None)
 
     ###################
     # Pacman Specific #

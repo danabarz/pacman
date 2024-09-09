@@ -16,7 +16,7 @@ import util
 class LeftTurnAgent(game.Agent):
     "An agent that turns left at every opportunity"
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=0):
         legal = state.getLegalPacmanActions()
         current = state.getPacmanState().configuration.direction
         if current == Directions.STOP:
@@ -38,7 +38,7 @@ class LeftTurnAgent(game.Agent):
 #         self.evaluationFunction = util.lookup(evalFn, globals())
 #         assert self.evaluationFunction != None
 
-#     def getAction(self, state):
+#     def getAction(self, state, agentIndex=0):
 #         # Generate candidate actions
 #         legal = state.getLegalPacmanActions()
 #         if Directions.STOP in legal:
@@ -57,29 +57,29 @@ class LeftTurnAgent(game.Agent):
 #         # This will store the previous position to detect loops
 #         self.lastPosition = None
 
-#     def getAction(self, state):
+#     def getAction(self, state, agentIndex=0):
 #         # Get legal actions for Pacman
 #         legal = state.getLegalPacmanActions()
-        
+
 #         # Remove STOP action to avoid staying in place
 #         if Directions.STOP in legal:
 #             legal.remove(Directions.STOP)
-        
+
 #         # Get Pacman's current position and food grid
 #         pacmanPosition = state.getPacmanPosition()
 #         food = state.getFood().asList()  # List of food positions (pellets)
-        
+
 #         # If no food is left, just return STOP
 #         if len(food) == 0:
 #             return Directions.STOP
-        
+
 #         # Find the nearest pellet using Manhattan distance
 #         nearestPellet = min(food, key=lambda pellet: util.manhattanDistance(pacmanPosition, pellet))
-        
+
 #         # Evaluate possible actions to find the best one
 #         bestAction = None
 #         bestDistance = float('inf')
-        
+
 #         for action in legal:
 #             # Generate successor state after taking the action
 #             successor = state.generatePacmanSuccessor(action)
@@ -104,7 +104,7 @@ class LeftTurnAgent(game.Agent):
 #             return bestAction
 #         else:
 #             return random.choice(legal)
-    
+
 
 class GreedyAgent(Agent):
     def __init__(self):
@@ -113,13 +113,13 @@ class GreedyAgent(Agent):
         self.maxHistoryLength = 5  # Memory length to check for loops
         self.lastPosition = None  # Used for "smallGrid" map
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=0):
         # Get the map name from the state layout
         # mapName = state.data.layout.name
 
         # Get legal actions for Pacman
         legal = state.getLegalPacmanActions()
-        
+
         # Remove STOP action to avoid staying in place
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
@@ -133,7 +133,8 @@ class GreedyAgent(Agent):
             return Directions.STOP
 
         # Find the nearest pellet using Manhattan distance
-        nearestPellet = min(food, key=lambda pellet: util.manhattanDistance(pacmanPosition, pellet))
+        nearestPellet = min(
+            food, key=lambda pellet: util.manhattanDistance(pacmanPosition, pellet))
 
         # Check map type and apply the corresponding behavior
         if state.data.layout.layoutText == ['%%%%%%%', '% P   %', '% %%% %', '% %.  %', '% %%% %', '%. G  %', '%%%%%%%']:
@@ -206,6 +207,7 @@ class GreedyAgent(Agent):
             # In case all actions lead to a loop, break the loop with a random action
             randomAction = random.choice(legal)
             return randomAction
+
 
 def scoreEvaluation(state):
     return state.getScore()

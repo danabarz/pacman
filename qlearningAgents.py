@@ -123,7 +123,7 @@ class QLearningAgent(ReinforcementAgent):
             state, action) == best_value]
         return random.choice(best_actions) if best_actions else None
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=1):
         """
         Compute the action to take in the current state.  With
         probability self.epsilon, we should take a random action and
@@ -190,7 +190,7 @@ class PacmanQAgent(QLearningAgent):
         self.index = 0  # This is always Pacman
         QLearningAgent.__init__(self, **args)
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=0):
         """
         Simply calls the getAction method of QLearningAgent and then
         informs parent of action for Pacman.  Do not change or remove this
@@ -269,7 +269,7 @@ class GhostQAgent(QLearningAgent):
         QLearningAgent.__init__(
             self, actionFn=lambda state: state.getLegalActions(index), **args)
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=1):
         """
         Calls the getAction method of QLearningAgent and then
         informs parent of action for Pacman.

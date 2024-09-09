@@ -18,7 +18,7 @@ class GhostAgent(Agent):
     def __init__(self, index):
         self.index = index
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=1):
         dist = self.getDistribution(state)
         if len(dist) == 0:
             return Directions.STOP
@@ -273,7 +273,7 @@ class MinMaxGhost(GhostAgent):
 
         return v
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=1):
         """
         Returns the minimax action from the current gameState using self.depth and self.evaluationFunction.
         """

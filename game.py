@@ -34,7 +34,7 @@ class Agent:
     def __init__(self, index=0):
         self.index = index
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex):
         """
         The Agent will receive a GameState (from either {pacman, capture, sonar}.py) and
         must return an action from Directions.{North, South, East, West, Stop}
@@ -708,7 +708,7 @@ class Game:
                     self._agentCrash(agentIndex)
                     return
             else:
-                action = agent.getAction(observation)
+                action = agent.getAction(observation, agentIndex)
             self.unmute()
 
             # Execute the action

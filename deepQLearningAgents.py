@@ -7,15 +7,6 @@ import util
 import numpy as np
 from collections import deque
 
-ACTION_NUMBER = 4
-FEATURE_SIZE = 5
-ACTION_MAP = {
-    'North': 0,
-    'South': 1,
-    'East': 2,
-    'West': 3
-}
-
 
 # Define the Deep Q-Network
 class DQNetwork(nn.Module):
@@ -51,13 +42,14 @@ class ReplayBuffer:
 
 # Deep Q-Learning Agent Class
 class GhostDQAgent(ReinforcementAgent):
-    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=128, lr=0.001, numTraining=0, features_num=FEATURE_SIZE, **args):
+    def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=128, lr=0.001,
+                 numTraining=0, features_num=5, action_size=4, **args):
         super().__init__(numTraining=numTraining,
                          epsilon=epsilon, alpha=alpha, gamma=gamma, **args)
 
         self.index = index
         self.state_size = features_num
-        self.action_size = ACTION_NUMBER
+        self.action_size = action_size
         self.lr = lr
         self.batch_size = batch_size
         self.timestep = 0
@@ -67,22 +59,18 @@ class GhostDQAgent(ReinforcementAgent):
         self.qnetwork_target = DQNetwork(self.state_size, self.action_size)
         self.optimizer = optim.Adam(
             self.qnetwork_local.parameters(), lr=self.lr)
-        self.tau = 0.001  # For soft update of target network
 
-    def getAction(self, state):
+    def getAction(self, state, agentIndex=1):
         """Choose action based on epsilon-greedy strategy"""
         legal_actions = state.getLegalActions(self.index)
 
         if util.flipCoin(self.epsilon):
             return random.choice(legal_actions)
 
-        # Exploitation: predict Q-values and select the best legal action
         state_tensor = torch.FloatTensor(
             self.extract_state_features(state)).unsqueeze(0)
         with torch.no_grad():
             q_values = self.qnetwork_local(state_tensor)
-
-        # Only consider legal actions
         q_values = q_values.detach().cpu().numpy().flatten()
 
         # Find the best legal action by comparing Q-values for each legal action
@@ -97,14 +85,6 @@ class GhostDQAgent(ReinforcementAgent):
 
         self.doAction(state, best_legal_action)
         return best_legal_action
-
-    def action_to_index(self, action):
-        """
-        Map actions to their corresponding index in the Q-value list.
-        Example: if you have 4 possible actions (NORTH, SOUTH, EAST, WEST),
-        map each one to an index.
-        """
-        return ACTION_MAP.get(action, None)
 
     def extract_state_features(self, state):
         """This function should extract the relevant features from the state for input to the neural network.
@@ -131,7 +111,6 @@ class GhostDQAgent(ReinforcementAgent):
 
         self.memory.add((self.extract_state_features(
             state), self.action_to_index(action), reward, self.extract_state_features(next_state), done))
-
         if len(self.memory) > self.batch_size and self.timestep % 4 == 0:
             experiences = self.memory.sample(self.batch_size)
             self.learn(experiences)
