@@ -366,14 +366,14 @@ class PacmanRules:
 
         if state.data.food[x][y]:
             state.data.scoreChange += 10
-            # state.data.ghostScoreChange -= 10
+            state.data.ghostScoreChange -= 1
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
-                state.data.ghostScoreChange -= 100
+                state.data.ghostScoreChange -= 200
                 state.data.scoreChange += 100
                 state.data._win = True
         # Eat capsule
@@ -461,7 +461,7 @@ class GhostRules:
         else:
             if not state.data._win:
                 state.data.scoreChange -= 100
-                state.data.ghostScoreChange += 100
+                state.data.ghostScoreChange += 1000
                 state.data._lose = True
 
     collide = staticmethod(collide)
@@ -575,7 +575,7 @@ def readCommand(argv):
     noKeyboard = options.gameToReplay == None and (
         options.textGraphics or options.quietGraphics)
     pacmanType = loadAgent(options.pacman, noKeyboard)
-    agentOpts = parseAgentArgs(options.agentArgs)
+    agentOpts = {}  # parseAgentArgs(options.agentArgs)
     pacman = pacmanType(**agentOpts)  # Instantiate Pacman with agentArgs
     args['pacman'] = pacman
 
