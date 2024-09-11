@@ -165,7 +165,7 @@ class ReinforcementAgent(ValueEstimationAgent):
     def isInTesting(self):
         return not self.isInTraining()
 
-    def __init__(self, actionFn=None, numTraining=100, epsilon=0.1, alpha=0.1, gamma=0.9):
+    def __init__(self, actionFn=None, numTraining=0, epsilon=0.1, alpha=0.1, gamma=0.9):
         """
         actionFn: Function which takes a state and returns the list of legal actions
 
@@ -249,7 +249,8 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.episodeStartTime = time.time()
         if not 'lastWindowAccumRewards' in self.__dict__:
             self.lastWindowAccumRewards = 0.0
-        self.lastWindowAccumRewards += state.getScore(isGhost=True)
+        self.lastWindowAccumRewards += state.getScore(
+            isGhost=True)
 
         NUM_EPS_UPDATE = 100
         if self.episodesSoFar % NUM_EPS_UPDATE == 0:

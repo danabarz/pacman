@@ -19,20 +19,19 @@ ACTION_MAP = {
 class CentralizedDQNetwork(nn.Module):
     def __init__(self, state_size, action_size):
         super(CentralizedDQNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, action_size)
+        # Increased size for better learning
+        self.fc1 = nn.Linear(state_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, action_size)
 
     def forward(self, state):
         x = torch.relu(self.fc1(state))
         x = torch.relu(self.fc2(x))
         return self.fc3(x)
 
-# lr=0.0001
-
 
 class CentralizedDQLAgent(ReinforcementAgent):
-    def __init__(self, state_size=21, action_size=16, lr=0.0001, gamma=0.99, epsilon=0.1, buffer_size=10000, batch_size=64, numTraining=100, **args):
+    def __init__(self, state_size=20, action_size=16, lr=0.0001, gamma=0.99, epsilon=0.1, buffer_size=10000, batch_size=64, numTraining=0, **args):
         super().__init__(numTraining=numTraining,
                          epsilon=epsilon, gamma=gamma, **args)
         self.state_size = state_size
@@ -80,69 +79,48 @@ class CentralizedDQLAgent(ReinforcementAgent):
         ghost2_action = joint_action % 4
         return ghost1_action, ghost2_action
 
-    # def update(self, state, action, next_state, reward, done):
-    #     """Store experience and perform learning"""
-    #     # Modify reward to encourage ambushing
-    #     pacman_pos = next_state.getPacmanPosition()
-    #     ghost_positions = next_state.getGhostPositions()
-
-    #     # Compute distances from Pacman to each ghost
-    #     distances = [util.manhattanDistance(
-    #         pacman_pos, ghost_pos) for ghost_pos in ghost_positions]
-
-    #     # Reward when both ghosts are close to Pacman (ambushing)
-    #     if min(distances) < 2 and max(distances) < 4:
-    #         reward += 10  # Reward for effective ambushing
-
-    #     # Penalize if ghosts move far away from Pacman
-    #     if max(distances) > 5:
-    #         reward -= 5
-
-    #     # Penalize for Pacman eating food
-    #     if state.getNumFood() > next_state.getNumFood():
-    #         reward -= 10
-
-    #     # Call the regular update process
-    #     state_features = self.extract_state_features(state)
-    #     next_state_features = self.extract_state_features(next_state)
-    #     self.memory.add((state_features, self.action_to_index(action), reward,
-    #                     next_state_features, done))
-
-    #     if len(self.memory) > self.batch_size and self.timestep % 4 == 0:
-    #         experiences = self.sample_experiences()
-    #         self.learn(experiences)
-
-    #     self.timestep += 1
-
     def update(self, state, action, next_state, reward, done):
         """Store experience and perform learning for multiple ghosts"""
         state_features = self.extract_state_features(state)
         next_state_features = self.extract_state_features(next_state)
-        pacman_pos = next_state.getPacmanPosition()
 
-        num_ghosts = next_state.getNumAgents() - 1  # Pacman is agent 0, so subtract 1
-        print(f"Pacman Position: {pacman_pos}")
-        for ghost_index in range(1, num_ghosts + 1):
-            ghost_pos = next_state.getGhostPosition(ghost_index)
-            print(f"Ghost{i} Position: {ghost_pos}")
+        pacman_pos = next_state.getPacmanPosition()
+        ghost_positions = [next_state.getGhostPosition(
+            i + 1) for i in range(len(next_state.getGhostStates()))]
+        reward = 0
+
+        if len(ghost_positions) == 2:
+            ghost1_pos = ghost_positions[0]
+            ghost2_pos = ghost_positions[1]
+            dist_ghost1 = util.manhattanDistance(pacman_pos, ghost1_pos)
+            dist_ghost2 = util.manhattanDistance(pacman_pos, ghost2_pos)
+
+            if dist_ghost1 < 3 and dist_ghost2 < 3:
+                if (ghost1_pos[0] < pacman_pos[0] < ghost2_pos[0] or ghost1_pos[0] > pacman_pos[0] > ghost2_pos[0]) or \
+                        (ghost1_pos[1] < pacman_pos[1] < ghost2_pos[1] or ghost1_pos[1] > pacman_pos[1] > ghost2_pos[1]):
+                    reward += 50
+                else:
+                    reward += 10
+
+        for ghost_pos in ghost_positions:
             dist_ghost = util.manhattanDistance(pacman_pos, ghost_pos)
-            print(f"Distance Ghost{i}-Pacman: {dist_ghost}")
             reward += (10 - dist_ghost)
 
-        if next_state.isLose():
-            reward += 100
-
         if state.getNumFood() > next_state.getNumFood():
-            reward -= 10
+            reward -= 15
 
-        # # Encourage the ghosts to trap Pacman by reducing his legal actions
-        # pacman_legal_actions = len(next_state.getLegalPacmanActions())
-        # reward += (4 - pacman_legal_actions)  # Reward is higher when Pacman has fewer options
+        if len(state.getCapsules()) > len(next_state.getCapsules()):
+            reward -= 25
+
+        ghost_to_pacman_distances = [util.manhattanDistance(
+            pacman_pos, ghost_pos) for ghost_pos in ghost_positions]
+        if min(ghost_to_pacman_distances) > 5:
+            reward -= 5
 
         self.memory.add((state_features, self.action_to_index(action), reward,
                         next_state_features, done))
 
-        if len(self.memory) > self.batch_size and self.timestep % 4 == 0:
+        if len(self.memory) > self.batch_size and self.timestep % 2 == 0:
             experiences = self.sample_experiences()
             self.learn(experiences)
 
@@ -179,101 +157,52 @@ class CentralizedDQLAgent(ReinforcementAgent):
             target_param.data.copy_(
                 self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
 
-    def extract_state_features(self, state):
-        """Extract relevant features from the game state for input to the neural network."""
-        pacman_pos = state.getPacmanPosition()
-        pacman_direction = state.getPacmanState().getDirection()  # Get Pacman's direction
-        ghost_positions = state.getGhostPositions()
-        walls = state.getWalls()
-        features = [pacman_pos[0], pacman_pos[1]]
-
-        for ghost_pos in ghost_positions:
-            features.append(ghost_pos[0])
-            features.append(ghost_pos[1])
-
-        for ghost_pos in ghost_positions:
-            features.append(util.manhattanDistance(pacman_pos, ghost_pos))
-
-        direction_map = {
-            Directions.NORTH: 0,
-            Directions.SOUTH: 1,
-            Directions.EAST: 2,
-            Directions.WEST: 3
-        }
-
-        direction_encoded = [0, 0, 0, 0]
-        if pacman_direction in direction_map:
-            direction_encoded[direction_map[pacman_direction]] = 1
-        features.extend(direction_encoded)
-
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                x = int(pacman_pos[0] + dx)
-                y = int(pacman_pos[1] + dy)
-                if 0 <= x < walls.width and 0 <= y < walls.height:
-                    features.append(1 if walls[x][y] else 0)
-                else:
-                    features.append(1)
-
-        return features
-
-    # def extract_state_features(self, state): # add this after i run with the new update
+    # def extract_state_features(self, state):
     #     """Extract relevant features from the game state for input to the neural network."""
     #     pacman_pos = state.getPacmanPosition()
     #     pacman_direction = state.getPacmanState().getDirection()
     #     ghost_states = state.getGhostStates()
     #     food = state.getFood()
-    #     capsules = state.getCapsules()
+    #     # capsules = state.getCapsules()
     #     walls = state.getWalls()
 
-    #     # Initialize feature list with Pacman's position
     #     features = [pacman_pos[0], pacman_pos[1]]
-
-    #     # Add ghost positions and scared timers
     #     for ghost_state in ghost_states:
     #         ghost_pos = ghost_state.getPosition()
     #         features.append(ghost_pos[0])
     #         features.append(ghost_pos[1])
-    #         features.append(ghost_state.scaredTimer)  # Scared timer feature
 
-    #     # Add distance to closest food as a feature
-    #     food_distances = [util.manhattanDistance(pacman_pos, food_pos) for food_pos in food.asList()]
-    #     if food_distances:
-    #         features.append(min(food_distances))
-    #     else:
-    #         features.append(0)  # No food left
+    #     food_distances = [util.manhattanDistance(
+    #         pacman_pos, food_pos) for food_pos in food.asList()]
+    #     features.append(min(food_distances) if food_distances else 0)
+    #     # features.append(len(capsules))
 
-    #     # Add number of capsules remaining
-    #     features.append(len(capsules))
-
-    #     # Encode Pacman's direction
     #     direction_map = {
     #         Directions.NORTH: 0,
     #         Directions.SOUTH: 1,
     #         Directions.EAST: 2,
     #         Directions.WEST: 3
     #     }
-    #     direction_encoded = [0, 0, 0, 0]  # One-hot encoding for direction
+
+    #     direction_encoded = [0, 0, 0, 0]
     #     if pacman_direction in direction_map:
     #         direction_encoded[direction_map[pacman_direction]] = 1
     #     features.extend(direction_encoded)
 
-    #     # Add wall information around Pacman (3x3 grid around Pacman)
+    #     # Add ghost-to-ghost distances for better collaboration
+    #     if len(ghost_states) > 1:
+    #         ghost1_pos = ghost_states[0].getPosition()
+    #         ghost2_pos = ghost_states[1].getPosition()
+    #         features.append(util.manhattanDistance(ghost1_pos, ghost2_pos))
+
     #     for dx in [-1, 0, 1]:
     #         for dy in [-1, 0, 1]:
     #             x = int(pacman_pos[0] + dx)
     #             y = int(pacman_pos[1] + dy)
     #             if 0 <= x < walls.width and 0 <= y < walls.height:
-    #                 features.append(1 if walls[x][y] else 0)  # 1 for wall, 0 for no wall
+    #                 features.append(1 if walls[x][y] else 0)
     #             else:
     #                 features.append(1)
-
-    #     # Print debugging information (optional)
-    #     print(f"Pacman Position: {pacman_pos}, Direction: {pacman_direction}")
-    #     for i, ghost_state in enumerate(ghost_states, 1):
-    #         ghost_pos = ghost_state.getPosition()
-    #         dist_ghost = util.manhattanDistance(pacman_pos, ghost_pos)
-    #         print(f"Ghost{i} Position: {ghost_pos}, Distance to Pacman: {dist_ghost}, Scared Timer: {ghost_state.scaredTimer}")
 
     #     return features
 
@@ -284,3 +213,74 @@ class CentralizedDQLAgent(ReinforcementAgent):
             print("Training finished. Saving model...")
             torch.save(self.qnetwork_local.state_dict(),
                        f"dqn_model_centralized.pth")
+
+    def extract_state_features(self, state):
+        # Pacman's position and direction
+        pacman_pos = state.getPacmanPosition()
+        pacman_direction = state.getPacmanState().getDirection()
+
+        # Ghosts' positions and relative distances to Pacman
+        ghost_states = state.getGhostStates()
+        ghost_positions = [ghost_state.getPosition()
+                           for ghost_state in ghost_states]
+
+        features = [pacman_pos[0], pacman_pos[1]]  # Pacman's x, y coordinates
+
+        # Encode Pacman's direction as a one-hot vector (N, S, E, W)
+        direction_map = {
+            Directions.NORTH: [1, 0, 0, 0],
+            Directions.SOUTH: [0, 1, 0, 0],
+            Directions.EAST:  [0, 0, 1, 0],
+            Directions.WEST:  [0, 0, 0, 1]
+        }
+        direction_encoded = direction_map.get(pacman_direction, [0, 0, 0, 0])
+        # Add Pacman's direction to features
+        features.extend(direction_encoded)
+
+        # Ghosts' positions relative to Pacman
+        for ghost_pos in ghost_positions:
+            ghost_pacman_dist_x = ghost_pos[0] - pacman_pos[0]
+            ghost_pacman_dist_y = ghost_pos[1] - pacman_pos[1]
+            features.append(ghost_pacman_dist_x)
+            features.append(ghost_pacman_dist_y)
+
+            # Ghost-to-Ghost distances
+            if len(ghost_positions) > 1:
+                ghost1_pos = ghost_positions[0]
+                ghost2_pos = ghost_positions[1]
+                ghost_dist = util.manhattanDistance(ghost1_pos, ghost2_pos)
+                features.append(ghost_dist)  # Add ghost-to-ghost distance
+
+            # Food distances (minimum distance to the nearest food)
+            food_positions = state.getFood().asList()
+            food_distances = [util.manhattanDistance(
+                pacman_pos, food_pos) for food_pos in food_positions]
+            if food_distances:
+                # Minimum distance to food
+                features.append(min(food_distances))
+            else:
+                features.append(0)  # If no food is left, set to 0
+
+            # Capsule distances (minimum distance to the nearest capsule)
+            capsule_positions = state.getCapsules()
+            capsule_distances = [util.manhattanDistance(
+                pacman_pos, capsule_pos) for capsule_pos in capsule_positions]
+            if capsule_distances:
+                # Minimum distance to capsule
+                features.append(min(capsule_distances))
+            else:
+                features.append(0)  # If no capsules are left, set to 0
+
+            # Wall information (for the local area around Pacman)
+            walls = state.getWalls()
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    x = int(pacman_pos[0] + dx)
+                    y = int(pacman_pos[1] + dy)
+                    if 0 <= x < walls.width and 0 <= y < walls.height:
+                        # 1 if wall is present, else 0
+                        features.append(1 if walls[x][y] else 0)
+                    else:
+                        features.append(1)  # Boundary walls treated as solid
+
+            return features
