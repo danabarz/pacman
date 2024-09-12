@@ -203,9 +203,6 @@ class GameState:
     def isWin(self):
         return self.data._win
 
-    def getSteps(self):
-        return self.steps
-
     #############################################
     #             Helper methods:               #
     # You shouldn't need to call these directly #
@@ -215,7 +212,6 @@ class GameState:
         """
         Generates a new state by copying information from its predecessor.
         """
-        self.steps = 0
         if prevState != None:  # Initial state
             self.data = GameStateData(prevState.data)
         else:
@@ -330,7 +326,7 @@ class PacmanRules:
     These functions govern how pacman interacts with his environment under
     the classic game rules.
     """
-    PACMAN_SPEED = 1.0
+    PACMAN_SPEED = 2.0
 
     def getLegalActions(state):
         """
@@ -600,12 +596,13 @@ def readCommand(argv):
         args['numTraining'] = options.numTraining
         if 'numTraining' not in ghostOpts:
             ghostOpts['numTraining'] = options.numTraining
+
     if ghostType.__name__ == "CentralizedDQLAgent":
         centralized_agent = ghostType(**ghostOpts)
         # Load the model if dqn_model is provided
         if 'dqn_model' in ghostOpts and ghostOpts['dqn_model']:
             centralized_agent.load_model(ghostOpts['dqn_model'])
-            print("Model loaded successfully ", ghostOpts['dqn_model'])
+            print("Model loaded successfully", ghostOpts['dqn_model'])
         args['ghosts'] = [centralized_agent] * options.numGhosts
     else:
         args['ghosts'] = [ghostType(i + 1, **ghostOpts)
@@ -765,7 +762,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
     if (numGames - numTraining) >= 0:
         scores = [game.state.getScore() for game in games]
         foodCount = [game.state.getNumFood() for game in games]
-        steps = [game.state.getSteps() for game in games]
+        steps = [game.getSteps() for game in games]
         rewards = [game.getReward() for game in games]
         wins = [game.state.isWin() for game in games]
         loses = [game.state.isLose() for game in games]

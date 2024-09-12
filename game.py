@@ -540,9 +540,13 @@ class Game:
         self.totalAgentTimeWarnings = [0 for _ in agents]
         self.agentTimeout = False
         self.reward = 0
+        self.steps = 0
 
     def getReward(self):
         return self.reward
+
+    def getSteps(self):
+        return self.steps
 
     def getProgress(self):
         if self.gameOver:
@@ -733,7 +737,7 @@ class Game:
 
             # count pacman steps
             if agentIndex == 0:
-                self.state.steps += 1
+                self.steps += 1
 
             # Next agent
             agentIndex = (agentIndex + 1) % numAgents
