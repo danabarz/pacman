@@ -738,13 +738,18 @@ class Game:
                 boinc.set_fraction_done(self.getProgress())
 
         # inform a learning agent of the game result
-        for agent in self.agents:
+        from centralizedDQAgents import CentralizedDQLAgent
+        for i, agent in enumerate(self.agents):
             if "final" in dir(agent):
                 try:
+                    # Check if the agent is a CentralizedDQLAgent and it's the first ghost (index == 1)
+                    if isinstance(agent, CentralizedDQLAgent) and i != 1:
+                        continue  # Skip the other ghost agents if the index is not 1
+
                     self.mute()
                     agent.final(self.state)
                     self.unmute()
-                except (Exception):
+                except Exception:
                     if not self.catchExceptions:
                         raise
                     self.unmute()
