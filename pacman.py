@@ -793,22 +793,27 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
 
 
 def avg_steps_graph(steps):
-    plt.plot(range(len(steps)), steps)
+    interval = 100
+    avg_steps = [sum(steps[i:i+interval]) / float(len(steps[i:i+interval]))
+                  for i in range(0, len(steps), interval)]
+    plt.plot(range(0, len(steps), interval), avg_steps)
     plt.xlabel('Episodes')
     plt.ylabel('Steps to catch Pacman')
     plt.title('Steps to catch Pacman over Time')
-    plt.show()
+    plt.savefig('steps_test.png')
+    print('Steps progress graph over the test saved as steps_test.png')
 
 
 def avg_ghost_score(scores):
-    interval = 1
+    interval = 100
     avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval]))
                   for i in range(0, len(scores), interval)]
     plt.plot(range(0, len(scores), interval), avg_scores)
     plt.xlabel('Episodes')
     plt.ylabel('Average Score')
     plt.title(f'Average Score over Time (per {interval} episodes)')
-    plt.show()
+    plt.savefig('score_test.png')
+    print('Score progress graph over the test saved as score_test.png')
 
 
 """

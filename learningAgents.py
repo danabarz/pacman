@@ -288,6 +288,7 @@ class ReinforcementAgent(ValueEstimationAgent):
             print('%s\n%s' % (msg, '-' * len(msg)))
 
             # Plot and save the rewards progress graph
+            plt.clf()
             plt.plot(range(len(self.episodeRewardsList)),
                      self.episodeRewardsList)
             plt.xlabel('Episode')
