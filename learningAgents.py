@@ -287,14 +287,10 @@ class ReinforcementAgent(ValueEstimationAgent):
             msg = 'Training Done (turning off epsilon and alpha)'
             print('%s\n%s' % (msg, '-' * len(msg)))
 
-            # Plot and save the rewards progress graph
-            plt.clf()
             plt.plot(range(len(self.episodeRewardsList)),
                      self.episodeRewardsList)
             plt.xlabel('Episode')
             plt.ylabel('Total Reward')
             plt.title('Reward Progress Over Training')
-
-            # Save the plot as an image file
             plt.savefig('reward_progress.png')
             print('Reward progress graph saved as reward_progress.png')
