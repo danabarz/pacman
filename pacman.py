@@ -101,7 +101,8 @@ class GameState:
 
         # Time passes
         if agentIndex == 0:
-            state.data.scoreChange += TIME_PENALTY  # Penalty for waiting around
+            pass
+            # state.data.scoreChange += TIME_PENALTY  # Penalty for waiting around
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
@@ -111,7 +112,6 @@ class GameState:
         # Book keeping
         state.data._agentMoved = agentIndex
         state.data.score += state.data.scoreChange
-        state.data.ghost_score += state.data.ghostScoreChange
         # print(state.data.score)
         return state
 
@@ -155,8 +155,8 @@ class GameState:
     def getNumAgents(self):
         return len(self.data.agentStates)
 
-    def getScore(self, isGhost=False):
-        return self.data.ghost_score if isGhost else self.data.score
+    def getScore(self):
+        return self.data.score
 
     def getCapsules(self):
         """
@@ -203,6 +203,12 @@ class GameState:
     def isWin(self):
         return self.data._win
 
+    def getReward(self):
+        return self.reward
+
+    def getSteps(self):
+        return self.steps
+
     #############################################
     #             Helper methods:               #
     # You shouldn't need to call these directly #
@@ -212,6 +218,8 @@ class GameState:
         """
         Generates a new state by copying information from its predecessor.
         """
+        self.reward = 0
+        self.steps = 0
         if prevState != None:  # Initial state
             self.data = GameStateData(prevState.data)
         else:
@@ -267,14 +275,14 @@ class ClassicGameRules:
     def __init__(self, timeout=30):
         self.timeout = timeout
 
-    def newGame(self, layout, pacmanAgent, ghostAgents, display, quiet=False, catchExceptions=False):
+    def newGame(self, layout, pacmanAgent, ghostAgents, display, beQuiet=False, catchExceptions=False):
         agents = [pacmanAgent] + ghostAgents[:layout.getNumGhosts()]
         initState = GameState()
         initState.initialize(layout, len(ghostAgents))
         game = Game(agents, display, self, catchExceptions=catchExceptions)
         game.state = initState
         self.initialState = initState.deepCopy()
-        self.quiet = quiet
+        self.quiet = beQuiet
         return game
 
     def process(self, state, game):
@@ -365,21 +373,22 @@ class PacmanRules:
         # Eat food
 
         if state.data.food[x][y]:
-            state.data.scoreChange += 10
-            state.data.ghostScoreChange -= 1
+            # state.data.scoreChange += 10
+            # state.data.scoreChange -= 1
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
-                state.data.ghostScoreChange -= 200
-                state.data.scoreChange += 100
+                # state.data.scoreChange += 100
+                state.data.scoreChange -= 100
                 state.data._win = True
         # Eat capsule
         if (position in state.getCapsules()):
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
+            state.data.scoreChange -= 10
             # Reset all ghosts' scared timers
             for index in range(1, len(state.data.agentStates)):
                 state.data.agentStates[index].scaredTimer = SCARED_TIME
@@ -411,7 +420,6 @@ class GhostRules:
     getLegalActions = staticmethod(getLegalActions)
 
     def applyAction(state, action, ghostIndex):
-
         legal = GhostRules.getLegalActions(state, ghostIndex)
         if action not in legal:
             raise Exception("Illegal ghost action " + str(action))
@@ -453,15 +461,16 @@ class GhostRules:
 
     def collide(state, ghostState, agentIndex):
         if ghostState.scaredTimer > 0:
-            state.data.scoreChange += 200
+            # state.data.scoreChange += 200
+            state.data.scoreChange -= 20
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
             state.data._eaten[agentIndex] = True
         else:
             if not state.data._win:
-                state.data.scoreChange -= 100
-                state.data.ghostScoreChange += 1000
+                # state.data.scoreChange -= 100
+                state.data.scoreChange += 200
                 state.data._lose = True
 
     collide = staticmethod(collide)
@@ -552,8 +561,8 @@ def readCommand(argv):
                       help='Turns on exception handling and timeouts during games', default=False)
     parser.add_option('--timeout', dest='timeout', type='int',
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
-
-    # New option for Q-table file
+    parser.add_option('--dqn_model', dest='dqn_model', type='str',
+                      help='Path to the DQN model file to load', default=None)
     parser.add_option('--q_table_name', dest='q_table_name', type='str',
                       help='Path to the Q-table file to load/save', default=None)
 
@@ -575,13 +584,17 @@ def readCommand(argv):
     noKeyboard = options.gameToReplay == None and (
         options.textGraphics or options.quietGraphics)
     pacmanType = loadAgent(options.pacman, noKeyboard)
-    agentOpts = {}  # parseAgentArgs(options.agentArgs)
+    agentOpts = parseAgentArgs(options.agentArgs)
     pacman = pacmanType(**agentOpts)  # Instantiate Pacman with agentArgs
     args['pacman'] = pacman
 
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
     ghostOpts = parseAgentArgs(options.agentArgs)
+
+    # Pass dqn_model to the Ghost agent if provided
+    if options.dqn_model:
+        ghostOpts['dqn_model'] = options.dqn_model
 
     # Pass q_table_name to the Ghost agent if provided
     if options.q_table_name:
@@ -591,18 +604,21 @@ def readCommand(argv):
         args['numTraining'] = options.numTraining
         if 'numTraining' not in ghostOpts:
             ghostOpts['numTraining'] = options.numTraining
-
     if ghostType.__name__ == "CentralizedDQLAgent":
         centralized_agent = ghostType(**ghostOpts)
+        # Load the model if dqn_model is provided
+        if 'dqn_model' in ghostOpts and ghostOpts['dqn_model']:
+            centralized_agent.load_model(ghostOpts['dqn_model'])
+            print("Model loaded successfully ", ghostOpts['dqn_model'])
         args['ghosts'] = [centralized_agent] * options.numGhosts
     else:
         args['ghosts'] = [ghostType(i + 1, **ghostOpts)
                           for i in range(options.numGhosts)]
 
     # Don't display training games
-    if 'numTrain' in ghostOpts:
-        options.numQuiet = int(ghostOpts['numTrain'])
-        options.numIgnore = int(ghostOpts['numTrain'])
+    if 'numTraining' in ghostOpts:
+        options.numQuiet = int(ghostOpts['numTraining'])
+        options.numIgnore = int(ghostOpts['numTraining'])
 
     # Choose a display format
     if options.quietGraphics:
@@ -692,33 +708,54 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
     __main__.__dict__['_display'] = display
 
     # Ensure ClassicGameRules is imported
-
     rules = ClassicGameRules(timeout)
     games = []
     total_time = 0
 
-    for i in range(numGames):
-        beQuiet = i < numTraining
-        if beQuiet:
-            # Suppress output and graphics
-            import textDisplay
-            gameDisplay = textDisplay.NullGraphics()
-            rules.quiet = True
-        else:
-            gameDisplay = display
-            rules.quiet = False
+    # Adjust numTraining if it exceeds numGames
+    if numTraining > numGames:
+        numTraining = numGames
+
+    # Function to set training mode for agents
+    def setTrainingMode(agents, mode):
+        for agent in agents:
+            if hasattr(agent, 'setTrainingMode'):
+                agent.setTrainingMode(mode)
+
+    # Run training games
+    for i in range(numTraining):
+        # Suppress output and graphics for training
+        import textDisplay
+        gameDisplay = textDisplay.NullGraphics()
+        rules.quiet = True
+
+        # Set agents to training mode
+        setTrainingMode([pacman] + ghosts, True)
 
         # Initialize the game
-        game = rules.newGame(layout, pacman, ghosts,
-                             gameDisplay, beQuiet, catchExceptions)
+        game = rules.newGame(layout, pacman, ghosts, gameDisplay,
+                             beQuiet=True, catchExceptions=catchExceptions)
+        game.run()
+
+    # Run testing games
+    for i in range(numTraining, numGames):
+        # Enable output and graphics for testing
+        gameDisplay = display
+        rules.quiet = False
+
+        # Set agents to testing mode
+        setTrainingMode([pacman] + ghosts, False)
+
+        # Initialize the game
+        game = rules.newGame(layout, pacman, ghosts, gameDisplay,
+                             beQuiet=False, catchExceptions=catchExceptions)
 
         game_time = time.time()
         game.run()
         end_time = time.time()
 
-        if not beQuiet:
-            games.append(game)
-            total_time += end_time - game_time
+        games.append(game)
+        total_time += end_time - game_time
 
         if record:
             import time
@@ -730,28 +767,25 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                 cPickle.dump(components, f)
 
     if (numGames - numTraining) >= 0:
-        ghost_scores = [game.state.getScore(isGhost=True) for game in games]
-        pacman_scores = [game.state.getScore() for game in games]
+        ghost_scores = [game.state.getScore() for game in games]
         foodCount = [game.state.getNumFood() for game in games]
-        steps = [game.getNumOfSteps() for game in games]
+        steps = [game.state.getSteps() for game in games]
+        rewards = [game.state.getReward() for game in games]
         wins = [game.state.isWin() for game in games]
         loses = [game.state.isLose() for game in games]
         winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
         loseRate = loses.count(True) / float(len(loses)
                                              ) if len(loses) > 0 else 0
-        # print('Scores: ', ', '.join([str(score) for score in scores]))
-        # print('Record: ', ', '.join([['Loss', 'Win'][int(w)] for w in wins]))
         print(f'Average Score (ghost): '
               f'{sum(ghost_scores) / float(len(ghost_scores))}')
-        print(f'Average Score (pacman): '
-              f'{sum(pacman_scores) / float(len(pacman_scores))}')
         print(f'Win Rate: {wins.count(True)}/{len(wins)} ({winRate})')
         print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
         print(f'Food eaten average: {
-              sum(foodCount) / float(len(pacman_scores))}')
+              sum(foodCount) / float(len(ghost_scores))}')
         print(f'Average time: {total_time / numGames:.3f}')
         print(f'Average steps to catch Pacman: {
-              sum(steps) / float(len(pacman_scores)):.3f}')
+              sum(steps) / float(len(ghost_scores)):.3f}')
+        print(f'Average reward: {sum(rewards) / float(len(rewards)):.3f}')
         avg_ghost_score(ghost_scores)
         avg_steps_graph(steps)
 

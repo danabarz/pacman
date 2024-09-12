@@ -9,6 +9,7 @@
 from game import Agent
 import util
 import time
+import matplotlib.pyplot as plt
 
 
 ACTION_MAP = {
@@ -133,9 +134,13 @@ class ReinforcementAgent(ValueEstimationAgent):
         """
         self.episodeRewards += deltaReward
         if self.episodesSoFar == self.numTraining:
-            self.update(state, action, nextState, deltaReward, done=True)
+            reward = self.update(state, action, nextState,
+                                 deltaReward, done=True)
         else:
-            self.update(state, action, nextState, deltaReward, done=False)
+            reward = self.update(state, action, nextState,
+                                 deltaReward, done=False)
+        self.episodeRewards += reward
+        return reward
 
     def startEpisode(self):
         """
@@ -153,6 +158,10 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.accumTrainRewards += self.episodeRewards
         else:
             self.accumTestRewards += self.episodeRewards
+
+        # Store the reward for the current episode
+        self.episodeRewardsList.append(self.episodeRewards)
+
         self.episodesSoFar += 1
         if self.episodesSoFar >= self.numTraining:
             # Take off the training wheels
@@ -184,6 +193,7 @@ class ReinforcementAgent(ValueEstimationAgent):
         self.epsilon = float(epsilon)
         self.alpha = float(alpha)
         self.discount = float(gamma)
+        self.episodeRewardsList = []
 
     ################################
     # Controls needed for Crawler  #
@@ -211,7 +221,7 @@ class ReinforcementAgent(ValueEstimationAgent):
         Example: if you have 4 possible actions (NORTH, SOUTH, EAST, WEST),
         map each one to an index.
         """
-        return ACTION_MAP.get(action, None)
+        return ACTION_MAP.get(action, -1)
 
     ###################
     # Pacman Specific #
@@ -221,12 +231,12 @@ class ReinforcementAgent(ValueEstimationAgent):
         This is where we ended up after our last action.
         The simulation should somehow ensure this is called
         """
+        reward = 0
         if not self.lastState is None:
-            reward = state.getScore(isGhost=True) - \
-                self.lastState.getScore(isGhost=True)
-            self.observeTransition(
+            reward = state.getScore() - self.lastState.getScore()
+            reward = self.observeTransition(
                 self.lastState, self.lastAction, state, reward)
-        return state
+        return state, reward
 
     def registerInitialState(self, state):
         self.startEpisode()
@@ -238,10 +248,10 @@ class ReinforcementAgent(ValueEstimationAgent):
         Called by Pacman game at the terminal state
         """
         if not self.lastState is None:
-            deltaReward = state.getScore(
-                isGhost=True) - self.lastState.getScore(isGhost=True)
+            deltaReward = state.getScore() - self.lastState.getScore()
             self.observeTransition(
                 self.lastState, self.lastAction, state, deltaReward)
+
         self.stopEpisode()
 
         # Make sure we have this var
@@ -249,8 +259,7 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.episodeStartTime = time.time()
         if not 'lastWindowAccumRewards' in self.__dict__:
             self.lastWindowAccumRewards = 0.0
-        self.lastWindowAccumRewards += state.getScore(
-            isGhost=True)
+        self.lastWindowAccumRewards += self.episodeRewards
 
         NUM_EPS_UPDATE = 100
         if self.episodesSoFar % NUM_EPS_UPDATE == 0:
@@ -258,22 +267,33 @@ class ReinforcementAgent(ValueEstimationAgent):
             windowAvg = self.lastWindowAccumRewards / float(NUM_EPS_UPDATE)
             if self.episodesSoFar <= self.numTraining:
                 trainAvg = self.accumTrainRewards / float(self.episodesSoFar)
-                print('\tCompleted %d out of %d training episodes' %
-                      (self.episodesSoFar, self.numTraining))
-                print('\tAverage Rewards over all training: %.2f' % (trainAvg))
+                print(f'\tCompleted {self.episodesSoFar} out of {
+                      self.numTraining} training episodes')
+                print(f'\tAverage Rewards over all training: {trainAvg:.2f}')
             else:
-                testAvg = float(self.accumTestRewards) / \
-                    (self.episodesSoFar - self.numTraining)
-                print('\tCompleted %d test episodes' %
-                      (self.episodesSoFar - self.numTraining))
-                print('\tAverage Rewards over testing: %.2f' % testAvg)
-            print('\tAverage Rewards for last %d episodes: %.2f' %
-                  (NUM_EPS_UPDATE, windowAvg))
-            print('\tEpisode took %.2f seconds' %
-                  (time.time() - self.episodeStartTime))
+                soFar = self.episodesSoFar - self.numTraining
+                testAvg = float(self.accumTestRewards) / soFar
+                print(f'\tCompleted {soFar} test episodes')
+                print(f'\tAverage Rewards over testing: {testAvg:.2f}')
+            print(f'\tAverage Rewards for last {
+                  NUM_EPS_UPDATE} episodes: {windowAvg:.2f}')
+            print(f'\tEpisode took {time.time() -
+                  self.episodeStartTime:.2f} seconds')
             self.lastWindowAccumRewards = 0.0
             self.episodeStartTime = time.time()
 
+        # When training is done, plot the reward graph
         if self.episodesSoFar == self.numTraining:
             msg = 'Training Done (turning off epsilon and alpha)'
             print('%s\n%s' % (msg, '-' * len(msg)))
+
+            # Plot and save the rewards progress graph
+            plt.plot(range(len(self.episodeRewardsList)),
+                     self.episodeRewardsList)
+            plt.xlabel('Episode')
+            plt.ylabel('Total Reward')
+            plt.title('Reward Progress Over Training')
+
+            # Save the plot as an image file
+            plt.savefig('reward_progress.png')
+            print('Reward progress graph saved as reward_progress.png')

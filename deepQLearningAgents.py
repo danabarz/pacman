@@ -98,31 +98,14 @@ class GhostDQAgent(ReinforcementAgent):
 
     def update(self, state, action, next_state, reward, done):
         """Store experience and perform learning"""
-        # next_pacman_pos = next_state.getPacmanPosition()
-        # next_ghost_pos = next_state.getGhostPosition(self.index)
-        # distance = util.manhattanDistance(next_pacman_pos, next_ghost_pos)
-        # reward -= distance
-
-        if state.isWin() or next_state.isWin():
-            reward -= 1
-
-        if state.isLose() or next_state.isLose():
-            reward += 1
-
         self.memory.add((self.extract_state_features(
             state), self.action_to_index(action), reward, self.extract_state_features(next_state), done))
+
         if len(self.memory) > self.batch_size and self.timestep % 4 == 0:
             experiences = self.memory.sample(self.batch_size)
             self.learn(experiences)
 
-    def is_trapping_pacman(self, next_state):
-        """
-        Example heuristic: Check if Pacman has limited movement options.
-        For instance, Pacman is trapped when he has fewer than 2 legal moves.
-        """
-        legal_pacman_moves = next_state.getLegalPacmanActions()
-        # Trapping when Pacman has only 1-2 moves left
-        return len(legal_pacman_moves) <= 2
+        return reward
 
     def learn(self, experiences):
         """Update network weights"""

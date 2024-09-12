@@ -393,14 +393,12 @@ class GameStateData:
             self.layout = prevState.layout
             self._eaten = prevState._eaten
             self.score = prevState.score
-            self.ghost_score = prevState.ghost_score
         self._foodEaten = None
         self._capsuleEaten = None
         self._agentMoved = None
         self._lose = False
         self._win = False
         self.scoreChange = 0
-        self.ghostScoreChange = 0
 
     def deepCopy(self):
         state = GameStateData(self)
@@ -508,8 +506,6 @@ class GameStateData:
         self.capsules = layout.capsules[:]
         self.layout = layout
         self.score = 0
-        self.ghost_score = 0
-        self.ghostScoreChange = 0
         self.scoreChange = 0
 
         self.agentStates = []
@@ -540,19 +536,15 @@ class Game:
         self.muteAgents = muteAgents
         self.catchExceptions = catchExceptions
         self.moveHistory = []
-        self.totalAgentTimes = [0 for agent in agents]
-        self.totalAgentTimeWarnings = [0 for agent in agents]
+        self.totalAgentTimes = [0 for _ in agents]
+        self.totalAgentTimeWarnings = [0 for _ in agents]
         self.agentTimeout = False
-        self.total_moves = 0
 
     def getProgress(self):
         if self.gameOver:
             return 1.0
         else:
             return self.rules.getProgress(self)
-
-    def getNumOfSteps(self):
-        return self.total_moves
 
     def _agentCrash(self, agentIndex, quiet=False):
         "Helper method for handling agent crashes"
@@ -654,8 +646,9 @@ class Game:
                         self._agentCrash(agentIndex, quiet=True)
                         return
                 else:
-                    observation = agent.observationFunction(
+                    observation, reward = agent.observationFunction(
                         self.state.deepCopy())
+                    self.state.reward += reward
                 self.unmute()
             else:
                 observation = self.state.deepCopy()
@@ -736,7 +729,7 @@ class Game:
 
             # count pacman steps
             if agentIndex == 0:
-                self.total_moves += 1
+                self.state.steps += 1
 
             # Next agent
             agentIndex = (agentIndex + 1) % numAgents

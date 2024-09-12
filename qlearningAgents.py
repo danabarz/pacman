@@ -159,6 +159,7 @@ class QLearningAgent(ReinforcementAgent):
         td_error = reward + disc * next_value - qvalue
         new_value = qvalue + alpha * td_error
         self.setQValue(state, action, new_value)
+        return reward
 
     def getPolicy(self, state):
         # Get best action from state
@@ -242,6 +243,7 @@ class ApproximateQAgent(PacmanQAgent):
         for feature in features:
             self.weights[feature] += self.alpha * \
                 correction * features[feature]
+        return reward
 
     def final(self, state):
         "Called at the end of each game."
@@ -251,7 +253,7 @@ class ApproximateQAgent(PacmanQAgent):
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
             # you might want to print your weights here for debugging
-            pass
+            print(self.weights)
 
 
 class GhostQAgent(QLearningAgent):
@@ -279,18 +281,13 @@ class GhostQAgent(QLearningAgent):
         return action
 
     def update(self, state, action, nextState, reward, done=False):
-        # pacman_pos = nextState.getPacmanPosition()
-        # ghost_pos = nextState.getGhostPosition(self.index)
-        # distance = util.manhattanDistance(pacman_pos, ghost_pos)
-        # reward -= distance
         ghost_pos = nextState.getGhostPosition(self.index)
         old_distance = util.manhattanDistance(
             state.getPacmanPosition(), ghost_pos)
         new_distance = util.manhattanDistance(
             nextState.getPacmanPosition(), ghost_pos)
         reward = reward + new_distance if new_distance < old_distance else reward - new_distance
-
-        QLearningAgent.update(self, state, action, nextState, reward)
+        return QLearningAgent.update(self, state, action, nextState, reward)
 
     def final(self, state):
         """
