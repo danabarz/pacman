@@ -539,6 +539,10 @@ class Game:
         self.totalAgentTimes = [0 for _ in agents]
         self.totalAgentTimeWarnings = [0 for _ in agents]
         self.agentTimeout = False
+        self.reward = 0
+
+    def getReward(self):
+        return self.reward
 
     def getProgress(self):
         if self.gameOver:
@@ -648,7 +652,7 @@ class Game:
                 else:
                     observation, reward = agent.observationFunction(
                         self.state.deepCopy())
-                    self.state.reward += reward
+                    self.reward += reward
                 self.unmute()
             else:
                 observation = self.state.deepCopy()

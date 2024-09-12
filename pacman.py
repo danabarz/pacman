@@ -203,9 +203,6 @@ class GameState:
     def isWin(self):
         return self.data._win
 
-    def getReward(self):
-        return self.reward
-
     def getSteps(self):
         return self.steps
 
@@ -218,7 +215,6 @@ class GameState:
         """
         Generates a new state by copying information from its predecessor.
         """
-        self.reward = 0
         self.steps = 0
         if prevState != None:  # Initial state
             self.data = GameStateData(prevState.data)
@@ -767,36 +763,34 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                 cPickle.dump(components, f)
 
     if (numGames - numTraining) >= 0:
-        ghost_scores = [game.state.getScore() for game in games]
+        scores = [game.state.getScore() for game in games]
         foodCount = [game.state.getNumFood() for game in games]
         steps = [game.state.getSteps() for game in games]
-        rewards = [game.state.getReward() for game in games]
+        rewards = [game.getReward() for game in games]
         wins = [game.state.isWin() for game in games]
         loses = [game.state.isLose() for game in games]
         winRate = wins.count(True) / float(len(wins)) if len(wins) > 0 else 0
         loseRate = loses.count(True) / float(len(loses)
                                              ) if len(loses) > 0 else 0
         print(f'Average Score (ghost): '
-              f'{sum(ghost_scores) / float(len(ghost_scores))}')
+              f'{sum(scores) / float(len(scores))}')
         print(f'Win Rate: {wins.count(True)}/{len(wins)} ({winRate})')
         print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
         print(f'Food eaten average: {
-              sum(foodCount) / float(len(ghost_scores))}')
+              sum(foodCount) / float(len(scores))}')
         print(f'Average time: {total_time / numGames:.3f}')
         print(f'Average steps to catch Pacman: {
-              sum(steps) / float(len(ghost_scores)):.3f}')
+              sum(steps) / float(len(scores)):.3f}')
         print(f'Average reward: {sum(rewards) / float(len(rewards)):.3f}')
-        avg_ghost_score(ghost_scores)
+        avg_ghost_score(scores)
         avg_steps_graph(steps)
 
     return games
 
 
 def avg_steps_graph(steps):
-    interval = 100
-    avg_steps = [sum(steps[i:i+interval]) / float(len(steps[i:i+interval]))
-                  for i in range(0, len(steps), interval)]
-    plt.plot(range(0, len(steps), interval), avg_steps)
+    plt.clf()
+    plt.plot(range(len(steps)), steps)
     plt.xlabel('Episodes')
     plt.ylabel('Steps to catch Pacman')
     plt.title('Steps to catch Pacman over Time')
@@ -805,9 +799,10 @@ def avg_steps_graph(steps):
 
 
 def avg_ghost_score(scores):
-    interval = 100
+    interval = 1
     avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval]))
                   for i in range(0, len(scores), interval)]
+    plt.clf()
     plt.plot(range(0, len(scores), interval), avg_scores)
     plt.xlabel('Episodes')
     plt.ylabel('Average Score')
