@@ -618,12 +618,14 @@ def readCommand(argv):
             print("Model loaded successfully", ghostOpts['dqn_model'])
         args['ghosts'] = [centralized_agent] * options.numGhosts
     elif ghostType.__name__ == "deepQLearningAgents":
-        dqn_agent = ghostType(**ghostOpts)
-        # Load the model if dqn_model is provided
-        if 'dqn_model' in ghostOpts and ghostOpts['dqn_model']:
-            dqn_agent.load_model(ghostOpts['dqn_model'])
-            print("Model loaded successfully", ghostOpts['dqn_model'])
-        args['ghosts'] = [dqn_agent] * options.numGhosts
+        args['ghosts'] = []
+        for i in range(options.numGhosts):
+            dqn_agent = ghostType(**ghostOpts)
+            # Load the model if dqn_model is provided
+            if 'dqn_model' in ghostOpts and ghostOpts['dqn_model']:
+                dqn_agent.load_model(ghostOpts['dqn_model'])
+                print(f"Model loaded successfully for ghost {i+1}", ghostOpts['dqn_model'])
+            args['ghosts'].append(dqn_agent)
     else:
         args['ghosts'] = [ghostType(i + 1, **ghostOpts)
                           for i in range(options.numGhosts)]
@@ -814,7 +816,7 @@ def avg_steps_graph(steps):
 
 
 def avg_ghost_score(scores):
-    interval = 1
+    interval = 1000
     avg_scores = [sum(scores[i:i+interval]) / float(len(scores[i:i+interval]))
                   for i in range(0, len(scores), interval)]
     plt.clf()
