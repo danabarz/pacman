@@ -506,8 +506,8 @@ def readCommand(argv):
     """
     from optparse import OptionParser
     usageStr = """
-  USAGE:      python pacman.py <options>
-  EXAMPLES:   (1) python pacman.py
+    SAGE:      python pacman.py <options>
+    EXAMPLES:   (1) python pacman.py
                   - starts an interactive game
               (2) python pacman.py --layout smallClassic --zoom 2
               OR  python pacman.py -l smallClassic -z 2
@@ -564,13 +564,26 @@ def readCommand(argv):
     args = dict()
 
     # Fix the random seed
+    
     if options.fixRandomSeed:
         random.seed('cs188')
 
     # Choose a layout
-    args['layout'] = layout.getLayout(options.layout)
+    layout_path = options.layout  # Assuming options.layout holds the layout name
+    print(f"Checking layout path: {layout_path}")
+
+    # Construct the full path to the layout file
+    layout_dir = os.path.join(os.path.dirname(__file__), 'layouts')
+    full_layout_path = os.path.join(layout_dir, layout_path + '.lay')
+    print(f"Full layout path: {full_layout_path}")
+
+    if not os.path.exists(full_layout_path):
+        print(f"Available files in the directory: {os.listdir(layout_dir)}")
+        raise Exception("The layout " + full_layout_path + " cannot be found")
+
+    args['layout'] = layout.getLayout(full_layout_path)
     if args['layout'] == None:
-        raise Exception("The layout " + options.layout + " cannot be found")
+        raise Exception("The layout " + full_layout_path + " cannot be found")
 
     # Choose a Pacman agent
     noKeyboard = options.gameToReplay == None and (
@@ -604,6 +617,13 @@ def readCommand(argv):
             centralized_agent.load_model(ghostOpts['dqn_model'])
             print("Model loaded successfully", ghostOpts['dqn_model'])
         args['ghosts'] = [centralized_agent] * options.numGhosts
+    elif ghostType.__name__ == "deepQLearningAgents":
+        dqn_agent = ghostType(**ghostOpts)
+        # Load the model if dqn_model is provided
+        if 'dqn_model' in ghostOpts and ghostOpts['dqn_model']:
+            dqn_agent.load_model(ghostOpts['dqn_model'])
+            print("Model loaded successfully", ghostOpts['dqn_model'])
+        args['ghosts'] = [dqn_agent] * options.numGhosts
     else:
         args['ghosts'] = [ghostType(i + 1, **ghostOpts)
                           for i in range(options.numGhosts)]
@@ -773,11 +793,9 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
               f'{sum(scores) / float(len(scores))}')
         print(f'Win Rate: {wins.count(True)}/{len(wins)} ({winRate})')
         print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
-        print(f'Food eaten average: {
-              sum(foodCount) / float(len(scores))}')
+        print(f'Food eaten average: {sum(foodCount) / float(len(scores))}')
         print(f'Average time: {total_time / numGames:.3f}')
-        print(f'Average steps to catch Pacman: {
-              sum(steps) / float(len(scores)):.3f}')
+        print(f'Average steps to catch Pacman: {sum(steps) / float(len(scores)):.3f}')
         print(f'Average reward: {sum(rewards) / float(len(rewards)):.3f}')
         avg_ghost_score(scores)
         avg_steps_graph(steps)

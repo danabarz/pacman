@@ -19,18 +19,23 @@ ACTION_MAP = {
 class CentralizedDQNetwork(nn.Module):
     def __init__(self, state_size, action_size):
         super(CentralizedDQNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, action_size)
+        self.fc1 = nn.Linear(state_size, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 256)
+        self.fc4 = nn.Linear(256, 256)
+        self.fc5 = nn.Linear(256, action_size)
 
     def forward(self, state):
         x = torch.relu(self.fc1(state))
         x = torch.relu(self.fc2(x))
-        return self.fc3(x)
+        x = torch.relu(self.fc3(x))
+        x = torch.relu(self.fc4(x))
+        return self.fc5(x)
 
 
 class CentralizedDQLAgent(ReinforcementAgent):
-    def __init__(self, state_size=11, action_size=16, lr=0.001, gamma=0.99, epsilon=0.1, buffer_size=10000, batch_size=64, numTraining=0, checkpoint=None, dqn_model=None, **args):
+    def __init__(self, state_size=11, action_size=16, lr=0.001, gamma=0.99, epsilon=0.1,
+                  buffer_size=1000, batch_size=64, numTraining=0, checkpoint=None, dqn_model=None, **args):
         super().__init__(numTraining=numTraining,
                          epsilon=epsilon, gamma=gamma, **args)
         self.state_size = state_size

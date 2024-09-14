@@ -267,18 +267,15 @@ class ReinforcementAgent(ValueEstimationAgent):
             windowAvg = self.lastWindowAccumRewards / float(NUM_EPS_UPDATE)
             if self.episodesSoFar <= self.numTraining:
                 trainAvg = self.accumTrainRewards / float(self.episodesSoFar)
-                print(f'\tCompleted {self.episodesSoFar} out of {
-                      self.numTraining} training episodes')
+                print(f'\tCompleted {self.episodesSoFar} out of {self.numTraining} training episodes')
                 print(f'\tAverage Rewards over all training: {trainAvg:.2f}')
             else:
                 soFar = self.episodesSoFar - self.numTraining
                 testAvg = float(self.accumTestRewards) / soFar
                 print(f'\tCompleted {soFar} test episodes')
                 print(f'\tAverage Rewards over testing: {testAvg:.2f}')
-            print(f'\tAverage Rewards for last {
-                  NUM_EPS_UPDATE} episodes: {windowAvg:.2f}')
-            print(f'\tEpisode took {time.time() -
-                  self.episodeStartTime:.2f} seconds')
+            print(f'\tAverage Rewards for last {NUM_EPS_UPDATE} episodes: {windowAvg:.2f}')
+            print(f'\tEpisode took {time.time() -self.episodeStartTime:.2f} seconds')
             self.lastWindowAccumRewards = 0.0
             self.episodeStartTime = time.time()
 

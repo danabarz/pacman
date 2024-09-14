@@ -6,7 +6,7 @@ from learningAgents import ReinforcementAgent
 import util
 import numpy as np
 from collections import deque
-
+import os
 
 # Define the Deep Q-Network
 class DQNetwork(nn.Module):
@@ -43,7 +43,7 @@ class ReplayBuffer:
 # Deep Q-Learning Agent Class
 class GhostDQAgent(ReinforcementAgent):
     def __init__(self, index, epsilon=0.1, gamma=0.9, alpha=0.1, buffer_size=10000, batch_size=128, lr=0.001,
-                 numTraining=0, features_num=5, action_size=4, **args):
+                 numTraining=0, features_num=5, action_size=4, checkpoint=None, dqn_model = None, **args):
         super().__init__(numTraining=numTraining,
                          epsilon=epsilon, alpha=alpha, gamma=gamma, **args)
 
@@ -53,12 +53,20 @@ class GhostDQAgent(ReinforcementAgent):
         self.lr = lr
         self.batch_size = batch_size
         self.timestep = 0
-
         self.memory = ReplayBuffer(buffer_size)
         self.qnetwork_local = DQNetwork(self.state_size, self.action_size)
         self.qnetwork_target = DQNetwork(self.state_size, self.action_size)
         self.optimizer = optim.Adam(
-            self.qnetwork_local.parameters(), lr=self.lr)
+        self.qnetwork_local.parameters(), lr=self.lr)
+        if dqn_model:
+            self.dqn_model = dqn_model
+            self.load_model(self.dqn_model)
+            print(f"Model loaded successfully: {self.dqn_model}")
+        else:
+            print("No model provided. Initializing new model.")
+        if checkpoint:
+            self.load_model(checkpoint)
+
 
     def getAction(self, state, agentIndex=1):
         """Choose action based on epsilon-greedy strategy"""
@@ -145,4 +153,38 @@ class GhostDQAgent(ReinforcementAgent):
         if self.episodesSoFar % 100 == 0:
             print("Training finished. Saving model...")
             torch.save(self.qnetwork_local.state_dict(),
-                       f"dqn_model_ghost_{self.index}.pth")
+                       f"dqn_model_ghost_.pth")
+            
+    def save_model(self, filepath):
+        """Save the model and replay buffer to disk."""
+        if os.path.exists(filepath):
+            print("Deleting previous save at", filepath)
+            os.remove(filepath)
+        torch.save({
+            'qnetwork_local_state_dict': self.qnetwork_local.state_dict(),
+            'qnetwork_target_state_dict': self.qnetwork_target.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'replay_buffer': list(self.memory.memory)  # Convert deque to list for serialization
+        }, filepath)
+        print("Model saved to", filepath)
+
+    def load_model(self, filepath):
+        """Load the model and replay buffer from disk."""
+        print("Loading model from", filepath)
+        checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+        print("Checkpoint keys:", checkpoint.keys())  # Print all keys in the checkpoint
+
+        # Check for the presence of expected keys
+        if 'qnetwork_local_state_dict' in checkpoint:
+            self.qnetwork_local.load_state_dict(checkpoint['qnetwork_local_state_dict'])
+            self.qnetwork_target.load_state_dict(checkpoint['qnetwork_target_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.memory.memory = deque(checkpoint['replay_buffer'], maxlen=self.memory.memory.maxlen)  # Restore deque
+        else:
+            # Fallback: assume the checkpoint contains only the state_dict of the model
+            self.qnetwork_local.load_state_dict(checkpoint)
+            self.qnetwork_target.load_state_dict(checkpoint)
+            print("Loaded model weights only, no optimizer or replay buffer state.")
+
+        print("Model loaded successfully from", filepath)
+
