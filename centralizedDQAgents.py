@@ -228,7 +228,7 @@ class CentralizedDQLAgent(ReinforcementAgent):
     def final(self, state):
         """Finalize the episode and save the model after training."""
         ReinforcementAgent.final(self, state)
-        if self.episodesSoFar % 100 == 0:
+        if self.episodesSoFar % 100 == 0 and self.episodesSoFar != 0 and self.episodesSoFar <=self.numTraining:
             print("Training finished. Saving model...")
             self.save_model(f"dqn_model_centralized_1.pth")
 
