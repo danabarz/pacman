@@ -267,15 +267,18 @@ class ReinforcementAgent(ValueEstimationAgent):
             windowAvg = self.lastWindowAccumRewards / float(NUM_EPS_UPDATE)
             if self.episodesSoFar <= self.numTraining:
                 trainAvg = self.accumTrainRewards / float(self.episodesSoFar)
-                print(f'\tCompleted {self.episodesSoFar} out of {self.numTraining} training episodes')
+                print(f'\tCompleted {self.episodesSoFar} out of {
+                      self.numTraining} training episodes')
                 print(f'\tAverage Rewards over all training: {trainAvg:.2f}')
             else:
                 soFar = self.episodesSoFar - self.numTraining
                 testAvg = float(self.accumTestRewards) / soFar
                 print(f'\tCompleted {soFar} test episodes')
                 print(f'\tAverage Rewards over testing: {testAvg:.2f}')
-            print(f'\tAverage Rewards for last {NUM_EPS_UPDATE} episodes: {windowAvg:.2f}')
-            print(f'\tEpisode took {time.time() -self.episodeStartTime:.2f} seconds')
+            print(f'\tAverage Rewards for last {
+                  NUM_EPS_UPDATE} episodes: {windowAvg:.2f}')
+            print(f'\tEpisode took {time.time() -
+                  self.episodeStartTime:.2f} seconds')
             self.lastWindowAccumRewards = 0.0
             self.episodeStartTime = time.time()
 
@@ -284,10 +287,13 @@ class ReinforcementAgent(ValueEstimationAgent):
             msg = 'Training Done (turning off epsilon and alpha)'
             print('%s\n%s' % (msg, '-' * len(msg)))
 
-            plt.plot(range(len(self.episodeRewardsList)),
-                     self.episodeRewardsList)
+            interval = 1000
+            avg_reward = [sum(self.episodeRewardsList[i:i+interval]) / float(len(self.episodeRewardsList[i:i+interval]))
+                          for i in range(0, len(self.episodeRewardsList), interval)]
+            plt.clf()
+            plt.plot(range(0, len(self.episodeRewardsList), interval), avg_reward)
             plt.xlabel('Episode')
             plt.ylabel('Total Reward')
             plt.title('Reward Progress Over Training')
-            plt.savefig('reward_progress.png')
+            plt.savefig('reward_progress1000.png')
             print('Reward progress graph saved as reward_progress.png')
