@@ -83,42 +83,41 @@ python pacman.py [options]
 
 ### Ghost Agents
 
-- **RandomGhost**: 
-  ```bash
-  python pacman.py -g RandomGhost
-  ```
-
 - **DirectionalGhost**: 
+Specify `-k` as the number of ghosts value (e.g., 1), -l to choose layout (smallGrid or mediumClassic is possible).
   ```bash
-  python pacman.py -g DirectionalGhost
+  python pacman.py -g DirectionalGhost -k 1 -l smallGrid
   ```
 
 - **AStarGhost**: 
+Specify `-k` as the number of ghosts value (e.g., 1), -l to choose layout (smallGrid or mediumClassic is possible).
   ```bash
-  python pacman.py -g AStarGhost
+  python pacman.py -g AStarGhost -k 1 -l smallGrid
   ```
 
 - **MinMaxGhost**: 
+Specify `-k` as the number of ghosts value (e.g., 1), -l to choose layout (smallGrid or mediumClassic is possible).
   ```bash
   python pacman.py -g MinMaxGhost
   ```
 
 - **GhostQAgent**: 
-  Include the file to load the Q-table with `--q_table_name`, specify `-n` for number of games, and `-x` for the number of training games, with `-k` as the number of ghosts value (e.g., 2).
+  Include the file to load the Q-table with `--q_table_name`, specify `-n` for number of games, with `-k` as the number of ghosts value (e.g., 1), with layout smallGrid.
   ```bash
-  python pacman.py -g GhostQAgent --q_table_name qtable.pkl -n 100 -x 50 -k 1
+  python pacman.py -g GhostQAgent --q_table_name qtable.pkl -x 50 -k 1 -l smallGrid
   ```
 
 - **GhostDQAgent**: 
-  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games,  with `-k` as the number of ghosts value (e.g., 2).
+  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games,  with `-k` as the number of ghosts value (e.g., 2),
+  -l to choose layout (smallGrid or mediumClassic is possible).
   ```bash
-  python pacman.py -g GhostDQAgent --dqn_model dqn_model_ghost_.pth -n 10 -k 1
+  python pacman.py -g GhostDQAgent --dqn_model dqn_model_ghost_.pth -n 10 -k 1 -l smallGrid
   ```
 
 - **CentralizedDQLAgent**: 
-  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games,  with `-k` as the number of ghosts value (e.g., 2).
+  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games,  with `-k` as the number of ghosts value (e.g., 2), , with layout mediumClassic.
   ```bash
-  python pacman.py -g CentralizedDQLAgent --dqn_model centralized_dqn_model_1.pth -n 10 -k 2
+  python pacman.py -g CentralizedDQLAgent --dqn_model centralized_dqn_model_1.pth -n 10 -k 2 -l mediumClassic
   ```
 
 ## Additional Information
