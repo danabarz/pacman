@@ -31,8 +31,8 @@ python pacman.py [options]
 - `-l`, `--layout`: Specifies the layout file for the map (default: mediumClassic)
   - Example: `--layout smallClassic`
   
-- `-p`, `--pacman`: Specifies the Pacman agent type (default: KeyboardAgent)
-  - Example: `--pacman MinimaxAgent`
+- `-p`, `--pacman`: Specifies the Pacman agent type (default: GreedyAgent)
+  - Example: `--pacman GreedyAgent`
   
 - `-g`, `--ghosts`: Specifies the ghost agent type (default: RandomGhost)
   - Example: `--ghosts CentralizedDQLAgent`
@@ -104,21 +104,21 @@ python pacman.py [options]
   ```
 
 - **GhostQAgent**: 
-  Include the file to load the Q-table with `--q_table_name`, specify `-n` for number of games, and `-x` for the number of training games, with `-k` as the seed value (e.g., 1).
+  Include the file to load the Q-table with `--q_table_name`, specify `-n` for number of games, and `-x` for the number of training games, with `-k` as the number of ghosts value (e.g., 2).
   ```bash
   python pacman.py -g GhostQAgent --q_table_name qtable.pkl -n 100 -x 50 -k 1
   ```
 
 - **GhostDQAgent**: 
-  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games, and `-x` for the number of training games, with `-k` as the seed value (e.g., 1).
+  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games,  with `-k` as the number of ghosts value (e.g., 2).
   ```bash
-  python pacman.py -g GhostDQAgent --dqn_model dqn_model.pth -n 100 -x 50 -k 1
+  python pacman.py -g GhostDQAgent --dqn_model dqn_model_ghost_.pth -n 10 -k 1
   ```
 
 - **CentralizedDQLAgent**: 
-  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games, and `-x` for the number of training games, with `-k` as the seed value (e.g., 1).
+  Include the file to load the DQN model with `--dqn_model`, specify `-n` for number of games,  with `-k` as the number of ghosts value (e.g., 2).
   ```bash
-  python pacman.py -g CentralizedDQLAgent --dqn_model centralized_dqn_model.pth -n 100 -x 50 -k 1
+  python pacman.py -g CentralizedDQLAgent --dqn_model centralized_dqn_model_1.pth -n 10 -k 2
   ```
 
 ## Additional Information
