@@ -84,6 +84,95 @@ class DirectionalGhost(GhostAgent):
         dist.normalize()
         return dist
 
+class BFSGhost(GhostAgent):
+    def __init__(self, index):
+        super().__init__(index)
+
+    def bfs(self, startState, goalState, state):
+        """
+        BFS search to find the shortest path to the goal from the ghost's current position.
+        """
+        from util import Queue
+        open_list = Queue()
+        open_list.push((startState, []))
+        visited = set()
+
+        while not open_list.isEmpty():
+            currentState, actions = open_list.pop()
+
+            if currentState in visited:
+                continue
+
+            visited.add(currentState)
+
+            if currentState == goalState:
+                return actions
+
+            for action in state.getLegalActions(self.index):
+                if action == Directions.STOP:  # Skip the "stop" action
+                    continue
+
+                dx, dy = Actions.directionToVector(action)
+                next_x, next_y = int(
+                    currentState[0] + dx), int(currentState[1] + dy)
+                nextState = (next_x, next_y)
+
+                if nextState not in visited and not state.hasWall(next_x, next_y):
+                    newActions = actions + [action]
+                    open_list.push((nextState, newActions))
+
+        return []
+
+    def getDistribution(self, state):
+        """
+        Determine the distribution of actions for the ghost using BFS.
+        """
+        ghostPosition = state.getGhostPosition(self.index)
+        pacmanPosition = state.getPacmanPosition()
+        ghostState = state.getGhostState(self.index)
+        isScared = ghostState.scaredTimer > 0
+
+        # Adjust speed when scared
+        speed = 0.5 if isScared else 1
+
+        if isScared:
+            # Flee from Pacman when scared
+            actions = state.getLegalActions(self.index)
+            actions = [a for a in actions if a != Directions.STOP]
+            if not actions:
+                return util.Counter()
+
+            actionVectors = [Actions.directionToVector(
+                a, speed) for a in actions]
+            newPositions = [(ghostPosition[0] + a[0], ghostPosition[1] + a[1])
+                            for a in actionVectors]
+            distancesToPacman = [manhattanDistance(
+                pos, pacmanPosition) for pos in newPositions]
+
+            # Select action that maximizes distance from Pacman
+            bestDistance = max(distancesToPacman)
+            bestActions = [a for a, dist in zip(
+                actions, distancesToPacman) if dist == bestDistance]
+
+            dist = util.Counter()
+            for a in bestActions:
+                dist[a] = 1.0 / len(bestActions)
+            return dist
+        else:
+            # Use BFS to chase Pacman
+            actions = self.bfs(ghostPosition, pacmanPosition, state)
+
+            dist = util.Counter()
+            if len(actions) > 0:
+                dist[actions[0]] = 1.0
+            else:
+                legalActions = [a for a in state.getLegalActions(
+                    self.index) if a != Directions.STOP]
+                if legalActions:
+                    dist[random.choice(legalActions)] = 1.0
+
+            return dist
+
 
 class AStarGhost(GhostAgent):
     def __init__(self, index):
@@ -211,65 +300,69 @@ class MinMaxGhost(GhostAgent):
 
     def evaluationFunction(self, state):
         """
-        Evaluation function for the MinMaxGhost.
-        When the ghost is not scared, it tries to maximize the number of food pellets by moving towards Pacman.
-        When scared, it tries to flee from Pacman.
+        Enhanced evaluation function for the MinMaxGhost.
+        Considers distance to Pacman, number of food pellets, and distance to the nearest food pellet.
         """
         ghostState = state.getGhostState(self.index)
         ghostPosition = state.getGhostPosition(self.index)
         pacmanPosition = state.getPacmanPosition()
         numFood = state.getNumFood()
+        foodPositions = state.getFood().asList()
 
         # If ghost is scared, prioritize fleeing from Pacman
         if ghostState.scaredTimer > 0:
             return manhattanDistance(ghostPosition, pacmanPosition)
 
-        # Otherwise, prioritize moving towards Pacman while considering food count
-        return -manhattanDistance(ghostPosition, pacmanPosition) + numFood * 1000
+        # Calculate distance to the nearest food pellet
+        nearestFoodDistance = min(manhattanDistance(ghostPosition, food) for food in foodPositions) if foodPositions else 0
 
-    def minmax(self, state, depth, agentIndex):
+        # Combine factors into the evaluation score
+        return -manhattanDistance(ghostPosition, pacmanPosition) + numFood * 1000 - nearestFoodDistance
+
+    def minmax(self, state, depth, agentIndex, alpha=float('-inf'), beta=float('inf')):
         """
-        Minimax algorithm implementation where the ghost minimizes/maximizes based on the evaluation function.
+        Minimax algorithm implementation with alpha-beta pruning.
         """
         if state.isWin() or state.isLose() or depth == 0:
             return self.evaluationFunction(state)
 
         if agentIndex == 0:  # Pacman's turn (Maximizer)
-            return self.maxValue(state, depth)
+            return self.maxValue(state, depth, alpha, beta)
         else:  # Ghost's turn (Minimizer)
-            return self.minValue(state, depth, agentIndex)
+            return self.minValue(state, depth, agentIndex, alpha, beta)
 
-    def maxValue(self, state, depth):
+    def maxValue(self, state, depth, alpha, beta):
         """
-        Max function for Pacman.
-        Pacman tries to minimize the number of food pellets left on the map.
+        Max function for Pacman with alpha-beta pruning.
         """
         v = float('-inf')
         legalActions = state.getLegalActions(0)  # Pacman's legal actions
 
         for action in legalActions:
             successorState = state.generateSuccessor(0, action)
-            # Proceed to Ghost's turn
-            v = max(v, self.minmax(successorState, depth, 1))
+            v = max(v, self.minmax(successorState, depth, 1, alpha, beta))
+            if v >= beta:
+                return v  # Beta cut-off
+            alpha = max(alpha, v)
 
         return v
 
-    def minValue(self, state, depth, agentIndex):
+    def minValue(self, state, depth, agentIndex, alpha, beta):
         """
-        Min function for the ghost.
-        The ghost tries to maximize the number of food pellets left on the map.
-        When scared, the ghost tries to flee from Pacman.
+        Min function for the ghost with alpha-beta pruning.
         """
         v = float('inf')
         legalActions = state.getLegalActions(agentIndex)
 
         nextAgent = (agentIndex + 1) % state.getNumAgents()
-        # Reduce depth only when all agents have moved
         nextDepth = depth - 1 if nextAgent == 0 else depth
 
         for action in legalActions:
             successorState = state.generateSuccessor(agentIndex, action)
-            v = min(v, self.minmax(successorState, nextDepth, nextAgent))
+            v = min(v, self.minmax(successorState, nextDepth, nextAgent, alpha, beta))
+            if v <= alpha:
+                return v  # Alpha cut-off
+            beta = min(beta, v)
 
         return v
 
