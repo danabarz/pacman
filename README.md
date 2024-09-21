@@ -83,10 +83,10 @@ python pacman.py [options]
 
 ### Ghost Agents
 
-- **DirectionalGhost**: 
+- **BFSGhost - BaseLine**: 
 Specify `-k` as the number of ghosts value (e.g., 1), -l to choose layout (smallGrid or mediumClassic is possible).
   ```bash
-  python pacman.py -g DirectionalGhost -k 1 -l smallGrid
+  python pacman.py -g BFSGhost -k 1 -l smallGrid
   ```
 
 - **AStarGhost**: 
