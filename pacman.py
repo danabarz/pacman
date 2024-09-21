@@ -524,7 +524,7 @@ def readCommand(argv):
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default(
                           'the agent TYPE in the pacmanAgents module to use'),
-                      metavar='TYPE', default='KeyboardAgent')
+                      metavar='TYPE', default='GreedyAgent')
     parser.add_option('-t', '--textGraphics', action='store_true', dest='textGraphics',
                       help='Display output as text only', default=False)
     parser.add_option('-q', '--quietTextGraphics', action='store_true', dest='quietGraphics',
@@ -564,7 +564,7 @@ def readCommand(argv):
     args = dict()
 
     # Fix the random seed
-    
+
     if options.fixRandomSeed:
         random.seed('cs188')
 
@@ -624,7 +624,8 @@ def readCommand(argv):
             # Load the model if dqn_model is provided
             if 'dqn_model' in ghostOpts and ghostOpts['dqn_model']:
                 dqn_agent.load_model(ghostOpts['dqn_model'])
-                print(f"Model loaded successfully for ghost {i+1}", ghostOpts['dqn_model'])
+                print(f"Model loaded successfully for ghost {
+                      i+1}", ghostOpts['dqn_model'])
             args['ghosts'].append(dqn_agent)
     else:
         args['ghosts'] = [ghostType(i + 1, **ghostOpts)
@@ -797,7 +798,8 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         print(f'Lose Rate: {loses.count(True)}/{len(loses)} ({loseRate})')
         print(f'Food eaten average: {sum(foodCount) / float(len(scores))}')
         print(f'Average time: {total_time / numGames:.3f}')
-        print(f'Average steps to catch Pacman: {sum(steps) / float(len(scores)):.3f}')
+        print(f'Average steps to catch Pacman: {
+              sum(steps) / float(len(scores)):.3f}')
         print(f'Average reward: {sum(rewards) / float(len(rewards)):.3f}')
         avg_ghost_score(scores)
         avg_steps_graph(steps)
